@@ -4,9 +4,7 @@
 
 **Title:** `v1.1.0 - Improved Terminal Edition`
 
-Copy the description below into the GitHub release description field.
 
----
 
 The first upgrade to **The Game of Hog**, building on the original Python
 Programming project with a complete terminal experience.
