@@ -1,0 +1,16 @@
+
+============================================================================
+  H O G / TERMINAL EDITION                                      v1.1.0
+  Roll with a plan. Race to 100.
+============================================================================
+  [1] Play against the computer
+  [2] Two human players
+  [3] Watch computer strategies compete
+  [4] Strategy lab
+  [5] How to play
+  [6] Strategy guide
+  [0] Exit
+
+  Choose [0-6]: 
+  Thanks for playing Hog.
+

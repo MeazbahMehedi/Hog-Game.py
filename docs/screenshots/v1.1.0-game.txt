@@ -1,0 +1,109 @@
+
+============================================================================
+  H O G / MATCH                                      v1.1.0
+  Meazbah vs Computer | First to 100
+============================================================================
+
+  TURN 01 / Meazbah
+  Dice: [6] [1] [1] [6] [3] [2]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 0 + 1 = 1
+  SCOREBOARD / Meazbah 1 : 0 Computer
+
+  TURN 02 / Computer
+  Dice: [2] [2] [6] [1] [6] [6]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 0 + 1 = 1
+  SCOREBOARD / Meazbah 1 : 1 Computer
+
+  TURN 03 / Meazbah
+  Dice: [5] [1] [5] [4] [1] [1]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 1 + 1 = 2
+  SCOREBOARD / Meazbah 2 : 1 Computer
+
+  TURN 04 / Computer
+  Dice: [1] [2] [2] [5] [5] [1]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 1 + 1 = 2
+  SCOREBOARD / Meazbah 2 : 2 Computer
+
+  TURN 05 / Meazbah
+  Dice: [5] [2] [6] [6] [6] [5]
+  Turn points: +30
+  Score: 2 + 30 = 32
+  SCOREBOARD / Meazbah 32 : 2 Computer
+
+  TURN 06 / Computer
+  Dice: [4] [2] [4] [5] [3] [1]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 2 + 1 = 3
+  SCOREBOARD / Meazbah 32 : 3 Computer
+
+  TURN 07 / Meazbah
+  Dice: [2] [6] [4] [3] [3]
+  Turn points: +18
+  Score: 32 + 18 = 50
+  SCOREBOARD / Meazbah 50 : 3 Computer
+
+  TURN 08 / Computer
+  Dice: [2] [2] [3] [1] [1] [4]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 3 + 1 = 4
+  SUS FUSS -> 4 becomes 5 (+1 bonus)
+  SCOREBOARD / Meazbah 50 : 5 Computer
+
+  TURN 09 / Meazbah
+  Dice: [1] [3] [3] [5] [3]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 50 + 1 = 51
+  SUS FUSS -> 51 becomes 53 (+2 bonus)
+  SCOREBOARD / Meazbah 53 : 5 Computer
+
+  TURN 10 / Computer
+  Dice: [1] [6] [4] [5] [1] [4]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 5 + 1 = 6
+  SUS FUSS -> 6 becomes 7 (+1 bonus)
+  SCOREBOARD / Meazbah 53 : 7 Computer
+
+  TURN 11 / Meazbah
+  Dice: none -> BOAR BRAWL +9
+  Score: 53 + 9 = 62
+  SUS FUSS -> 62 becomes 67 (+5 bonus)
+  SCOREBOARD / Meazbah 67 : 7 Computer
+
+  TURN 12 / Computer
+  Dice: [1] [5] [3] [6] [5] [3]
+  SOW SAD -> a 1 was rolled; turn points reduced to 1.
+  Score: 7 + 1 = 8
+  SUS FUSS -> 8 becomes 11 (+3 bonus)
+  SCOREBOARD / Meazbah 67 : 11 Computer
+
+  TURN 13 / Meazbah
+  Dice: none -> BOAR BRAWL +18
+  Score: 67 + 18 = 85
+  SUS FUSS -> 85 becomes 89 (+4 bonus)
+  SCOREBOARD / Meazbah 89 : 11 Computer
+
+  TURN 14 / Computer
+  Dice: none -> BOAR BRAWL +21
+  Score: 11 + 21 = 32
+  SCOREBOARD / Meazbah 89 : 32 Computer
+
+  TURN 15 / Meazbah
+  Dice: none -> BOAR BRAWL +18
+  Score: 89 + 18 = 107
+  SCOREBOARD / Meazbah 107 : 32 Computer
+
+============================================================================
+  H O G / MATCH COMPLETE                                      v1.1.0
+  Meazbah wins!
+============================================================================
+  Final score / Meazbah 107 : 32 Computer
+  Turns played: 15
+  Meazbah: 8 turns | 3 Sow Sad | 3 zero-dice | 3 Sus Fuss
+  Computer: 7 turns | 6 Sow Sad | 1 zero-dice | 3 Sus Fuss
+
+  Thanks for playing Hog.
+

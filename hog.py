@@ -1,357 +1,286 @@
-"""The Game of Hog."""
+"""The Game of Hog: rules, strategies, and a reusable simulator.
+
+Based on the Python Programming Project 1 starter and the original student
+solution. This edition keeps the assignment's public function names.
+"""
+
+from dataclasses import dataclass
+from math import isqrt
+from random import Random
 
 from dice import six_sided, make_test_dice
-from ucb import main, trace, interact
-from operator import abs
 
-GOAL = 100  # The goal of Hog is to score 100 points.
+GOAL = 100
+VERSION = "1.1.0"
 
-######################
-# Phase 1: Simulator #
-######################
+
+def _integer(value, name, minimum=0, maximum=None):
+    """Validate user-controlled numbers even when Python uses -O."""
+    if type(value) is not int or value < minimum:
+        raise ValueError(f"{name} must be an integer of at least {minimum}.")
+    if maximum is not None and value > maximum:
+        raise ValueError(f"{name} must be at most {maximum}.")
+    return value
 
 
 def roll_dice(num_rolls, dice=six_sided):
-    """Simulate rolling the DICE exactly NUM_ROLLS > 0 times. Return the sum of
-    the outcomes unless any of the outcomes is 1. In that case, return 1.
+    """Roll exactly NUM_ROLLS dice; any 1 makes the turn worth 1 point.
 
-    num_rolls:  The number of dice rolls that will be made.
-    dice:       A function that simulates a single dice roll outcome. Defaults to the six sided dice.
+    >>> roll_dice(3, make_test_dice(4, 5, 6))
+    15
+    >>> roll_dice(3, make_test_dice(4, 1, 6))
+    1
     """
-    # These assert statements ensure that num_rolls is a positive integer.
-    assert type(num_rolls) == int, "num_rolls must be an integer."
-    assert num_rolls > 0, "Must roll at least once."
-    # BEGIN PROBLEM 1
-    total = 0
-    sow_sad = False
+    _integer(num_rolls, "num_rolls", 1)
+    total, sow_sad = 0, False
     for _ in range(num_rolls):
-        outcome = dice()  # always roll all num_rolls dice
-        if outcome == 1:
-            sow_sad = True
+        outcome = dice()
         total += outcome
-    if sow_sad:
-        return 1
-    return total
-    # END PROBLEM 1
+        sow_sad = sow_sad or outcome == 1
+    return 1 if sow_sad else total
+
 
 def boar_brawl(player_score, opponent_score):
-    """Return the points scored when the current player rolls 0 dice according to Boar Brawl.
+    """Return the points awarded for choosing zero dice.
 
-    player_score:     The total score of the current player.
-    opponent_score:   The total score of the other player.
-
+    >>> boar_brawl(21, 46)
+    9
+    >>> boar_brawl(45, 52)
+    1
     """
-    # BEGIN PROBLEM 2
     opponent_tens = opponent_score // 10 % 10
     player_ones = player_score % 10
     return max(1, 3 * abs(opponent_tens - player_ones))
-    # END PROBLEM 2
 
 
 def take_turn(num_rolls, player_score, opponent_score, dice=six_sided):
-    """Return the points scored on a turn rolling NUM_ROLLS dice when the
-    current player has PLAYER_SCORE points and the opponent has OPPONENT_SCORE points.
-
-    num_rolls:       The number of dice rolls that will be made.
-    player_score:    The total score of the current player.
-    opponent_score:  The total score of the other player.
-    dice:            A function that simulates a single dice roll outcome.
-    """
-    # Leave these assert statements here; they help check for errors.
-    assert type(num_rolls) == int, "num_rolls must be an integer."
-    assert num_rolls >= 0, "Cannot roll a negative number of dice in take_turn."
-    assert num_rolls <= 10, "Cannot roll more than 10 dice."
-
-    # BEGIN PROBLEM 3
+    """Return points earned on one turn, before Sus Fuss."""
+    _integer(num_rolls, "num_rolls", 0, 10)
     if num_rolls == 0:
         return boar_brawl(player_score, opponent_score)
     return roll_dice(num_rolls, dice)
-    # END PROBLEM 3
 
 
 def simple_update(num_rolls, player_score, opponent_score, dice=six_sided):
-    """Return the total score of a player who starts their turn with
-    PLAYER_SCORE and then rolls NUM_ROLLS DICE, ignoring Sus Fuss.
-    """
-    score = player_score + take_turn(num_rolls, player_score, opponent_score, dice)
-    return score
+    """Return the new total score, without Sus Fuss."""
+    return player_score + take_turn(num_rolls, player_score, opponent_score, dice)
 
 
 def is_prime(n):
-    """Return whether N is prime."""
-    if n == 1:
+    """Return whether N is prime; values below 2 are not prime."""
+    if n < 2:
         return False
-    k = 2
-    while k < n:
-        if n % k == 0:
+    for divisor in range(2, isqrt(n) + 1):
+        if n % divisor == 0:
             return False
-        k += 1
     return True
 
 
-
 def num_factors(n):
-    """Return the number of factors of N, including 1 and N itself."""
-    # BEGIN PROBLEM 4
+    """Count positive factors, counting a square root only once.
+
+    >>> num_factors(9), num_factors(21)
+    (3, 4)
+    """
+    _integer(n, "n", 1)
     count = 0
-    k = 1
-    while k <= n:
-        if n % k == 0:
-            count += 1
-        k += 1
+    for divisor in range(1, isqrt(n) + 1):
+        if n % divisor == 0:
+            count += 1 if divisor * divisor == n else 2
     return count
-    # END PROBLEM 4
+
 
 def sus_points(score):
-    """Return the new score of a player taking into account the Sus Fuss rule."""
-    # BEGIN PROBLEM 4
-    factors = num_factors(score)
-    if factors == 3 or factors == 4:
-        new_score = score + 1
-        while not is_prime(new_score):
-            new_score += 1
-        return new_score
+    """Promote totals with three or four factors to the next prime.
+
+    >>> sus_points(21), sus_points(64), sus_points(67)
+    (23, 64, 67)
+    """
+    _integer(score, "score")
+    if score == 0 or num_factors(score) not in (3, 4):
+        return score
+    score += 1
+    while not is_prime(score):
+        score += 1
     return score
-    # END PROBLEM 4
 
 
 def sus_update(num_rolls, player_score, opponent_score, dice=six_sided):
-    """Return the total score of a player who starts their turn with
-    PLAYER_SCORE and then rolls NUM_ROLLS DICE, *including* Sus Fuss.
+    """Return the new total with all three rules enabled."""
+    return sus_points(simple_update(num_rolls, player_score, opponent_score, dice))
+
+
+@dataclass(frozen=True)
+class TurnEvent:
+    """A completed turn for interfaces; no additional dice are rolled."""
+
+    number: int
+    player: int
+    num_rolls: int
+    outcomes: tuple
+    score_before: int
+    opponent_score: int
+    turn_points: int
+    score_after: int
+
+    @property
+    def bonus(self):
+        return self.score_after - self.score_before - self.turn_points
+
+
+def play(strategy0, strategy1, update, score0=0, score1=0, dice=six_sided,
+         goal=GOAL, *, observer=None):
+    """Return final scores, calling one strategy exactly once per turn.
+
+    The original positional arguments are preserved. An optional observer
+    receives one TurnEvent after each completed turn. The engine never prints.
     """
-    # BEGIN PROBLEM 4
-    score = simple_update(num_rolls, player_score, opponent_score, dice)
-    return sus_points(score)
-    # END PROBLEM 4
+    _integer(score0, "score0")
+    _integer(score1, "score1")
+    _integer(goal, "goal", 1)
+    scores = [score0, score1]
+    who, turn_number = 0, 1
+    strategies = (strategy0, strategy1)
+    while max(scores) < goal:
+        before, opponent = scores[who], scores[1 - who]
+        count = strategies[who](before, opponent)
+        _integer(count, "strategy roll count", 0, 10)
+        outcomes = []
+
+        def recording_dice():
+            value = dice()
+            outcomes.append(value)
+            return value
+
+        scores[who] = update(count, before, opponent,
+                             recording_dice if observer is not None else dice)
+        if observer is not None:
+            points = (boar_brawl(before, opponent) if count == 0
+                      else 1 if 1 in outcomes else sum(outcomes))
+            observer(TurnEvent(turn_number, who, count, tuple(outcomes),
+                               before, opponent, points, scores[who]))
+        who = 1 - who
+        turn_number += 1
+    return tuple(scores)
 
 
 def always_roll_5(score, opponent_score):
-    """A strategy of always rolling 5 dice, regardless of the player's score or
-    the opponent's score.
-    """
     return 5
 
 
-def play(strategy0, strategy1, update, score0=0, score1=0, dice=six_sided, goal=GOAL):
-    """Simulate a game and return the final scores of both players, with
-    Player 0's score first and Player 1's score second.
-
-    E.g., play(always_roll_5, always_roll_5, sus_update) simulates a game in
-    which both players always choose to roll 5 dice on every turn and the Sus
-    Fuss rule is in effect.
-
-    A strategy function, such as always_roll_5, takes the current player's
-    score and their opponent's score and returns the number of dice the current
-    player chooses to roll.
-
-    An update function, such as sus_update or simple_update, takes the number
-    of dice to roll, the current player's score, the opponent's score, and the
-    dice function used to simulate rolling dice. It returns the updated score
-    of the current player after they take their turn.
-
-    strategy0: The strategy for player0.
-    strategy1: The strategy for player1.
-    update:    The update function (used for both players).
-    score0:    Starting score for Player 0
-    score1:    Starting score for Player 1
-    dice:      A function of zero arguments that simulates a dice roll.
-    goal:      The game ends and someone wins when this score is reached.
-    """
-    who = 0  # Who is about to take a turn, 0 (first) or 1 (second)
-    # BEGIN PROBLEM 5
-    while score0 < goal and score1 < goal:
-        if who == 0:
-            num_rolls = strategy0(score0, score1)
-            score0 = update(num_rolls, score0, score1, dice)
-        else:
-            num_rolls = strategy1(score1, score0)
-            score1 = update(num_rolls, score1, score0, dice)
-        who = 1 - who
-    # END PROBLEM 5
-    return score0, score1
-
-
-#######################
-# Phase 2: Strategies #
-#######################
-
-
 def always_roll(n):
-    """Return a player strategy that always rolls N dice.
+    """Return a strategy that always rolls N dice.
 
-    A player strategy is a function that takes two total scores as arguments
-    (the current player's score, and the opponent's score), and returns a
-    number of dice that the current player will roll this turn.
-
-    >>> strategy = always_roll(3)
-
-    >>> strategy(0, 0)
-    3
-    >>> strategy(99, 99)
+    >>> always_roll(3)(99, 99)
     3
     """
-    assert n >= 0 and n <= 10
+    _integer(n, "n", 0, 10)
 
-    # BEGIN PROBLEM 6
     def strategy(score, opponent_score):
         return n
     return strategy
-    # END PROBLEM 6
 
 
 def catch_up(score, opponent_score):
-    """A player strategy that always rolls 5 dice unless the opponent
-    has a higher score, in which case 6 dice are rolled.
+    """Roll six when behind, otherwise five.
 
     >>> catch_up(9, 4)
     5
-     >>> catch_up(17, 18)
+    >>> catch_up(17, 18)
     6
     """
-    if score < opponent_score:
-        return 6  # Roll one more to catch up
-    else:
-        return 5
+    return 6 if score < opponent_score else 5
+
 
 def make_averaged(original_function, times_called=1000):
-    """Return a function that returns the average value of ORIGINAL_FUNCTION
-    called TIMES_CALLED times.
+    """Return a function that averages repeated calls with the same arguments.
 
-    To implement this function, you will have to use *args syntax.
-
-    >>> dice = make_test_dice(4, 2, 5, 1)
-    >>> averaged_dice = make_averaged(roll_dice, 40)
-    >>> averaged_dice(1, dice)  # The avg of 10 4's, 10 2's, 10 5's, and 10 1's
+    >>> averaged = make_averaged(roll_dice, 40)
+    >>> averaged(1, make_test_dice(4, 2, 5, 1))
     3.0
     """
-    def calc_average(*args):
-        sum, i= 0, 0
-        while i < times_called:
-            sum += original_function(*args)
-            i += 1
-        return sum / times_called
-    return calc_average
+    _integer(times_called, "times_called", 1)
+
+    def averaged(*args):
+        return sum(original_function(*args) for _ in range(times_called)) / times_called
+    return averaged
 
 
 def max_scoring_num_rolls(dice=six_sided, times_called=1000):
-    """Return the number of dice (1 to 10) that gives the maximum average score for a turn.
-    Assume that the dice always return positive outcomes.
+    """Return the best average-scoring roll count; lower counts win ties.
 
-    >>> dice = make_test_dice(1, 6)
-    >>> max_scoring_num_rolls(dice)
+    >>> max_scoring_num_rolls(make_test_dice(1, 6))
     1
     """
-    # BEGIN PROBLEM 7
-    averaged_roll_dice = make_averaged(roll_dice, times_called)
-    best_num_rolls = 1
-    best_average = averaged_roll_dice(1, dice)
-    num_rolls = 2
-    while num_rolls <= 10:
-        average = averaged_roll_dice(num_rolls, dice)
+    averaged = make_averaged(roll_dice, times_called)
+    best_count, best_average = 1, float("-inf")
+    for count in range(1, 11):
+        average = averaged(count, dice)
         if average > best_average:
-            best_average = average
-            best_num_rolls = num_rolls
-        num_rolls += 1
-    return best_num_rolls
-    # END PROBLEM 7
+            best_count, best_average = count, average
+    return best_count
 
 
 def winner(strategy0, strategy1):
-    """Return 0 if strategy0 wins against strategy1, and 1 otherwise."""
+    """Return the winner's player index."""
     score0, score1 = play(strategy0, strategy1, sus_update)
-    if score0 > score1:
-        return 0
-    else:
-        return 1
+    return 0 if score0 > score1 else 1
 
 
-def winner(strategy0, strategy1):
-    """Return 0 if strategy0 wins against strategy1, and 1 otherwise."""
-    score0, score1 = play(strategy0, strategy1, sus_update)
-    if score0 > score1:
-        return 0
-    else:
-        return 1
-
-
-def average_win_rate(strategy, baseline=always_roll(6)):
-    """Return the average win rate of STRATEGY against BASELINE. Averages the
-    winrate when starting the game as player 0 and as player 1.
-    """
-    win_rate_as_player_0 = 1 - make_averaged(winner)(strategy, baseline)
-    win_rate_as_player_1 = make_averaged(winner)(baseline, strategy)
-
-    return (win_rate_as_player_0 + win_rate_as_player_1) / 2
+def average_win_rate(strategy, baseline=always_roll(6), times_called=1000):
+    """Average wins across TIMES_CALLED games in each starting position."""
+    averaged_winner = make_averaged(winner, times_called)
+    return ((1 - averaged_winner(strategy, baseline))
+            + averaged_winner(baseline, strategy)) / 2
 
 
 def boar_strategy(score, opponent_score, threshold=11, num_rolls=6):
-    """This strategy returns 0 dice if Boar Brawl gives at least THRESHOLD
-    points, and returns NUM_ROLLS otherwise. Ignore the Sus Fuss rule.
-    """
-    # BEGIN PROBLEM 8
-    if boar_brawl(score, opponent_score) >= threshold:
-        return 0
-    return num_rolls
-    # END PROBLEM 8
+    return 0 if boar_brawl(score, opponent_score) >= threshold else num_rolls
 
 
 def sus_strategy(score, opponent_score, threshold=11, num_rolls=6):
-    """This strategy returns 0 dice when rolling 0 increases the score by at least
-    THRESHOLD points, and returns NUM_ROLLS otherwise. Consider both the Boar Brawl and
-    Suss Fuss rules."""
-    # BEGIN PROBLEM 9
-    if sus_update(0, score, opponent_score) - score >= threshold:
-        return 0
-    return num_rolls
-    # END PROBLEM 9
+    gain = sus_update(0, score, opponent_score) - score
+    return 0 if gain >= threshold else num_rolls
 
-    # BEGIN PROBLEM 10
-    # Strategy name: Adaptive Strategy
 
 def adaptive_strategy(score, opponent_score):
+    """The original student's adaptive strategy, using the default 100 goal."""
+    free_points = sus_update(0, score, opponent_score) - score
+    if score + free_points >= GOAL or free_points >= 10:
+        return 0
+    if score >= 80:
+        return 3
+    if opponent_score >= 80:
+        return 8
+    if score < 30 and opponent_score < 30:
+        return 6
+    return 5
 
 
-        # Take free points if they can help reach the goal.
-        free_points = sus_update(0, score, opponent_score) - score
-        if score + free_points >= GOAL:
-            return 0
-
-        # Take a free turn if the gain is especially valuable.
-        if free_points >= 10:
-            return 0
-
-        # As the game approaches the goal, change the risk level.
-        if score >= 80:
-            return 3
-        elif opponent_score >= 80:
-            return 8
-
-        # Use a moderate number of dice early in the game.
-        if score < 30 and opponent_score < 30:
-            return 6
-
-        # Otherwise, use a middle-risk choice.
-        return 5
-
-    # END PROBLEM 10
+STRATEGIES = {
+    "always5": (always_roll_5, "Always roll 5", "A steady five-dice baseline."),
+    "always6": (always_roll(6), "Always roll 6", "A six-dice comparison baseline."),
+    "catch-up": (catch_up, "Catch up", "Roll six when behind, otherwise five."),
+    "boar": (boar_strategy, "Boar Brawl", "Take zero dice for at least 11 free points."),
+    "sus": (sus_strategy, "Sus Fuss", "Include the prime bonus when choosing zero dice."),
+    "adaptive": (adaptive_strategy, "Adaptive", "The original custom score-aware strategy."),
+}
 
 
-##########################
-# Command Line Interface #
-##########################
+def seeded_dice(seed=None):
+    """Create independent fair six-sided dice, optionally reproducible."""
+    rng = Random(seed)
 
-# NOTE: The function in this section does not need to be changed. It uses
-# features of Python not yet covered in the course.
+    def dice():
+        return rng.randint(1, 6)
+    return dice
 
 
-@main
 def run(*args):
-    """Read in the command-line argument and calls corresponding functions."""
-    import argparse
+    """Launch the experiment CLI; retained for assignment compatibility."""
+    from hog_experiments import main
+    return main(list(args) if args else None)
 
-    parser = argparse.ArgumentParser(description="Play Hog")
-    parser.add_argument(
-        "--run_experiments", "-r", action="store_true", help="Runs strategy experiments"
-    )
 
-    args = parser.parse_args()
+if __name__ == "__main__":
+    run()

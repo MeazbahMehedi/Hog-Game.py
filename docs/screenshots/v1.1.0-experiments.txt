@@ -1,0 +1,30 @@
+HOG / STRATEGY LAB                                      v1.1.0
+============================================================================
+Baseline: always6 | 100 games per seat | 200 per strategy
+Dice samples: 500 per roll count | Seed: 42
+All games use Sow Sad, Boar Brawl and Sus Fuss. Goal: 100.
+
+TURN SCORE EXPERIMENT / Sow Sad only
+   1 dice      3.44 average points
+   2 dice      6.17 average points
+   3 dice      7.50 average points
+   4 dice      8.44 average points
+   5 dice      9.01 average points
+   6 dice      8.91 average points
+   7 dice      8.71 average points
+   8 dice      7.95 average points
+   9 dice      7.89 average points
+  10 dice      7.42 average points
+Best sampled roll count: 5 (ties choose the lower count)
+
+STRATEGY COMPARISON / candidate wins against baseline
+Strategy        First seat  Second seat    Overall     95% interval
+always5             50.0%       46.0%     48.0%   41.2% - 54.9%
+always6             61.0%       47.0%     54.0%   47.1% - 60.8%
+catch-up            45.0%       37.0%     41.0%   34.4% - 47.9%
+boar                73.0%       66.0%     69.5%   62.8% - 75.5%
+sus                 77.0%       63.0%     70.0%   63.3% - 75.9%
+adaptive            80.0%       72.0%     76.0%   69.6% - 81.4%
+
+Estimates vary with sample size and seed; no strategy is guaranteed best.
+Intervals are approximate Wilson binomial intervals for pooled wins.
