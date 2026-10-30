@@ -2,6 +2,39 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v1.2.0 - Graphical Desktop Edition - 2026-10-28
+
+### Added
+
+- Tkinter desktop home screen with solo, local two-human, and watch modes.
+- Player naming, mode switching, strategy selectors, and optional seed setup.
+- Actual-outcome canvas dice, clickable 0-10 controls, and Enter-to-confirm.
+- Live score panels, progress bars, turn indicators, and zero-dice preview.
+- Scoring explanations and a scrollable journal of completed turns.
+- Winner screen, per-player statistics, replay, new setup, and final-table review.
+- Rules window and confirmation before leaving an unfinished match.
+- Incremental `GameSession` and validated display-independent `MatchConfig`.
+- 16 additional automated tests, bringing the full suite to 55 tests.
+- Six actual desktop screenshots, a capture utility, and archived v1.1.0 documentation.
+
+### Changed
+
+- `play` now advances `GameSession`, sharing scoring with the desktop interface.
+- Computer turns use cancellable Tk timers instead of blocking UI loops.
+- The terminal capture tool uses current-version filenames and preserves historical captures.
+- The desktop supports windows down to 1040x720 and adapts initial height to the display.
+
+### Preserved
+
+- Terminal menus, CLI flags, strategy experiments, original function names,
+  all three scoring rules, and the adaptive strategy's original decision order.
+- Original `dice.py` and `ucb.py` support files.
+
+### Scope
+
+- Desktop replay restarts a fixed seed; terminal replay continues its session stream.
+- No animations, sound, theme switching, persistent profiles, or saved games yet.
+
 ## v1.1.0 - Improved Terminal Edition - 2026-10-28
 
 ### Added
@@ -55,10 +88,9 @@ The uploaded coursework solution is labeled v1.0.0 for project history.
 
 ## Planned After Approval
 
-- v1.2.0: graphical desktop edition.
 - v2.0.0: animation and presentation improvements.
 - v2.1.0: stronger opponents and move advice.
 - v2.2.0: profiles, history, and tournaments.
 - v3.0.0: final showcase edition.
 
-These versions are a roadmap and are not part of the v1.1.0 package.
+These versions are a roadmap and are not part of the v1.2.0 package.

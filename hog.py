@@ -11,7 +11,7 @@ from random import Random
 from dice import six_sided, make_test_dice
 
 GOAL = 100
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 
 def _integer(value, name, minimum=0, maximum=None):
@@ -128,6 +128,66 @@ class TurnEvent:
         return self.score_after - self.score_before - self.turn_points
 
 
+class GameSession:
+    """Advance a match one turn at a time without blocking an interface.
+
+    Both the terminal simulator and desktop UI use this same scoring path.
+    Scores are exposed as an immutable pair. A completed match rejects moves.
+    """
+
+    def __init__(self, score0=0, score1=0, dice=six_sided, goal=GOAL,
+                 update=sus_update):
+        _integer(score0, "score0")
+        _integer(score1, "score1")
+        _integer(goal, "goal", 1)
+        self._scores = (score0, score1)
+        self.dice = dice
+        self.goal = goal
+        self.update = update
+        self.current_player = 0
+        self.turn_number = 1
+
+    @property
+    def scores(self):
+        return self._scores
+
+    @property
+    def finished(self):
+        return max(self.scores) >= self.goal
+
+    @property
+    def winner(self):
+        if not self.finished:
+            return None
+        return 0 if self.scores[0] > self.scores[1] else 1
+
+    def advance(self, num_rolls):
+        """Apply one legal move and return its real dice and scoring event."""
+        if self.finished:
+            raise ValueError("This match has finished. Start another match to play.")
+        _integer(num_rolls, "num_rolls", 0, 10)
+        who = self.current_player
+        before, opponent = self.scores[who], self.scores[1 - who]
+        outcomes = []
+
+        def recording_dice():
+            value = self.dice()
+            outcomes.append(value)
+            return value
+
+        after = self.update(num_rolls, before, opponent, recording_dice)
+        points = (boar_brawl(before, opponent) if num_rolls == 0
+                  else 1 if 1 in outcomes else sum(outcomes))
+        event = TurnEvent(self.turn_number, who, num_rolls, tuple(outcomes),
+                          before, opponent, points, after)
+        scores = list(self.scores)
+        scores[who] = after
+        self._scores = tuple(scores)
+        self.current_player = 1 - who
+        self.turn_number += 1
+        return event
+
+
 def play(strategy0, strategy1, update, score0=0, score1=0, dice=six_sided,
          goal=GOAL, *, observer=None):
     """Return final scores, calling one strategy exactly once per turn.
@@ -135,33 +195,15 @@ def play(strategy0, strategy1, update, score0=0, score1=0, dice=six_sided,
     The original positional arguments are preserved. An optional observer
     receives one TurnEvent after each completed turn. The engine never prints.
     """
-    _integer(score0, "score0")
-    _integer(score1, "score1")
-    _integer(goal, "goal", 1)
-    scores = [score0, score1]
-    who, turn_number = 0, 1
+    session = GameSession(score0, score1, dice, goal, update)
     strategies = (strategy0, strategy1)
-    while max(scores) < goal:
-        before, opponent = scores[who], scores[1 - who]
-        count = strategies[who](before, opponent)
-        _integer(count, "strategy roll count", 0, 10)
-        outcomes = []
-
-        def recording_dice():
-            value = dice()
-            outcomes.append(value)
-            return value
-
-        scores[who] = update(count, before, opponent,
-                             recording_dice if observer is not None else dice)
+    while not session.finished:
+        who = session.current_player
+        count = strategies[who](session.scores[who], session.scores[1 - who])
+        event = session.advance(count)
         if observer is not None:
-            points = (boar_brawl(before, opponent) if count == 0
-                      else 1 if 1 in outcomes else sum(outcomes))
-            observer(TurnEvent(turn_number, who, count, tuple(outcomes),
-                               before, opponent, points, scores[who]))
-        who = 1 - who
-        turn_number += 1
-    return tuple(scores)
+            observer(event)
+    return session.scores
 
 
 def always_roll_5(score, opponent_score):

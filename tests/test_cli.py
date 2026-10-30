@@ -107,7 +107,7 @@ class CommandLineTests(unittest.TestCase):
     def test_version(self):
         for script in ("hog.py", "hog_ui.py", "hog_experiments.py"):
             result = run_cli(script, "--version")
-            self.assertEqual(result.stdout.strip(), "1.1.0")
+            self.assertEqual(result.stdout.strip(), "1.2.0")
 
 
 if __name__ == "__main__":

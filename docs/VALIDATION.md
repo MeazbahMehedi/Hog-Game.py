@@ -1,6 +1,14 @@
-# v1.1.0 Validation
+# v1.2.0 Validation
 
-Environment: Python 3.12.14 on Linux. Date: 2026-10-28.
+Date: 2026-10-28.
+
+## Environments
+
+- Linux, Python 3.12.14, Tk 9.0.
+- Linux, Python 3.12.3, Tk 8.6.14.
+- A virtual X display was used to exercise and capture real Tk windows.
+
+Native Windows and macOS execution was not tested in this build.
 
 ## Automated Checks
 
@@ -9,59 +17,62 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-Result: **39 tests passed**; doctest examples passed.
+Result: **55 tests passed with no skips** when run with the virtual display,
+under each Python/Tk environment. The 18 doctest examples also pass.
 
-Coverage includes:
-
-- Sow Sad consumes every chosen dice roll, including rolls after a 1.
-- Assignment Boar Brawl examples and tens-digit extraction.
-- Factor and prime calculations checked against simple definitions through 300.
-- Sus Fuss checked against the mathematical definition for totals 0-300.
-- Sus Fuss after both zero-dice and Sow Sad turns.
-- Correct strategy argument order, alternating turns, and immediate stop at the goal.
-- Turn observation does not change results or consume extra dice.
-- Valid roll choices for all six strategies at every score pair from 0-99.
-- Adaptive strategy priority, fixed-roll tie behavior, and averaging.
-- Invalid values, Unicode numeric input, player-name controls, and clean end-of-input.
-- Real subprocess execution of menus, named setup, opponent selection, replay,
-  human vs computer, two-human mode, automatic mode, and experiment flags.
-- Repeatable game and experiment output using a fixed seed.
-
-An additional release check compared this edition with the uploaded original
-solution: 50,000 score-pair comparisons across five scoring/strategy functions,
-and 150 complete seeded games. All results agreed. This comparison used the
-original upload outside the package and is separate from the 39 included tests.
-
-## Documentation Captures
-
-Generated with:
+Without a graphical display, the real-window test class is skipped and the
+remaining 46 tests run. On typical Linux CI, the full suite can run under:
 
 ```bash
-python tools/capture_terminal.py
+xvfb-run -a python -m unittest discover -s tests -v
 ```
 
-The optional capture tool uses Pillow and a supported monospace font. Its images
-are styled representations of actual subprocess output; raw transcripts are
-included. PNGs were visually inspected for readable text and clipping.
+The previous release's 39 tests remain included. New coverage checks:
 
-Current-version match capture:
+- Incremental sessions and full-game simulation produce identical turns and scores.
+- A completed session rejects further moves; invalid moves leave state unchanged.
+- Match configuration validates modes, names, strategies, and optional seeds.
+- Real setup controls switch between human and computer states.
+- Bad names or seeds cannot start a match.
+- Human dice buttons advance exactly one turn and lock during a computer turn.
+- Local two-human mode alternates without scheduling computer timers.
+- Computer-only play agrees with the engine and advances via Tk's event loop.
+- Home navigation confirms leaving a game and cancels pending computer callbacks.
+- Rules windows can be reused, closed, and reopened.
+- Finished matches support summary, final-table review, and replay.
+- Dice controls and the action button fit a 1040x720 window.
+- The desktop version flag works without opening a display.
+
+## Actual Desktop Screenshots
 
 ```bash
-python hog_ui.py -n 0 --strategy0 adaptive --strategy1 sus --name0 Meazbah --name1 Computer --seed 42 --no-replay
+python tools/capture_desktop.py
 ```
 
-Result: Meazbah 107, Computer 32, over 15 turns.
+The optional capture tool uses Pillow to capture actual Tk client areas,
+without compositing or generating a replacement UI. Captures were produced
+with Python 3.12.3 / Tk 8.6 and reviewed for layout and readable controls.
 
-The experiment capture uses 100 games per seat, 500 turn samples per roll count,
-and seed 42. Its complete output is in
-`screenshots/v1.1.0-experiments.txt`. Results are sampled measurements.
+The game screenshots follow a real seeded match: Player 0's choices follow
+`adaptive`, the computer uses `sus`, and the seed is 42. The capture utility
+submits human-side choices through the same control callbacks as ordinary play.
+It does not replace scores, dice, or turn events. Result: 107-32 over 15 turns.
 
-The legacy image was captured from the original supplied modules with global
-random seed 42, calling `hog_ui.play_with(0)`. That original source is not
-duplicated in this release ZIP; its full output transcript is retained.
+Images include home, setup, active game, zero-dice scoring, winner, and rules.
+Historical terminal captures and transcripts are preserved from earlier releases.
 
-## Limits
+## Preserved Behavior
 
-- Native Windows and macOS execution were not tested in this environment.
-- No graphical window is provided in this terminal release.
-- The optional documentation image tool is separate from runtime requirements.
+The original scoring rules, adaptive strategy priority, terminal options,
+experiment flags, and simulator function names remain. `GameSession` now owns
+turn advancement so both interfaces use one scoring path.
+
+The archived [v1.1.0 validation notes](history/v1.1.0-validation.md) record the
+original release checks, including comparison against the uploaded coursework.
+
+## Scope
+
+- The desktop needs a graphical display and Tk support in the selected Python.
+- A missing display or missing Tk produces a clear launcher error with a terminal fallback.
+- A fixed desktop seed restarts on replay; terminal replay continues its session stream.
+- No saved games, persistent profiles, animations, sound, or native executable yet.

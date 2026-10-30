@@ -71,23 +71,24 @@ def main():
     parser.add_argument("--legacy-dir", type=Path,
                         help="optional folder containing the original v1.0.0 modules")
     args = parser.parse_args()
+    version = capture(["hog_ui.py", "--version"]).strip()
 
     menu = capture(["hog_ui.py"], text="0\n")
-    render("v1.1.0-menu", "Hog v1.1.0 / Main menu", menu)
+    render(f"v{version}-terminal-menu", f"Hog v{version} / Main menu", menu)
 
     command = ["hog_ui.py", "-n", "0", "--strategy0", "adaptive", "--strategy1", "sus",
                "--name0", "Meazbah", "--name1", "Computer", "--seed", "42", "--no-replay"]
     game = capture(command)
     start = game.index("  TURN 11")
     end = game.index("  TURN 14")
-    render("v1.1.0-game", "Hog v1.1.0 / Scoring detail (turns 11-13)", game,
+    render(f"v{version}-terminal-game", f"Hog v{version} / Scoring detail (turns 11-13)", game,
            excerpt=game[start:end])
     start = game.rfind("\n============================================================================",
                        0, game.index("  H O G / MATCH COMPLETE"))
-    render("v1.1.0-summary", "Hog v1.1.0 / Match summary", game, excerpt=game[start:])
+    render(f"v{version}-terminal-summary", f"Hog v{version} / Match summary", game, excerpt=game[start:])
 
     experiment = capture(["hog.py", "-r", "--games", "100", "--samples", "500", "--seed", "42"])
-    render("v1.1.0-experiments", "Hog v1.1.0 / Strategy lab", experiment)
+    render(f"v{version}-terminal-experiments", f"Hog v{version} / Strategy lab", experiment)
 
     if args.legacy_dir:
         old = capture(["-c", "import random; random.seed(42); "

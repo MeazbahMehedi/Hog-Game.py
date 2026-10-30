@@ -1,241 +1,250 @@
 # The Game of Hog
 
-**v1.1.0 · Improved Terminal Edition · Python 3.10+ · No runtime dependencies**
+**v1.2.0 · Graphical Desktop Edition · Python 3.10+ · Tkinter**
 
-A two-player dice game where choosing **not to roll** can be your best move.
+A little luck. A better decision.
 
-This is the first upgrade to my Python Programming Project 1. It builds on the original Hog simulator and adaptive strategy with a complete terminal menu, selectable computer opponents, named players, replay, clearer scoring, and a working strategy lab.
+The second upgrade to my Python Programming project turns Hog into a complete local desktop game. Choose your players, pick a strategy, click the dice controls, and race to 100. The terminal game and strategy lab from v1.1.0 are still included.
 
-![Hog v1.1.0 main menu](docs/screenshots/v1.1.0-menu.png)
+![Hog v1.2.0 desktop home screen](docs/screenshots/v1.2.0-home.png)
 
-## Start Playing
+## Quick Start
 
-1. Download and extract this release ZIP.
-2. Open a terminal inside the extracted `hog-v1.1.0` folder.
-3. Run:
+1. Download and extract `hog-v1.2.0.zip`.
+2. Open a terminal inside the extracted `hog-v1.2.0` folder.
+3. Launch the desktop game:
 
 ```bash
-python hog_ui.py
+python hog_desktop.py
 ```
 
-Use `python3` instead of `python` if needed. On Windows, `py -3 hog_ui.py` is another option. In PyCharm, open the extracted folder and run `hog_ui.py` using a Python 3 interpreter.
+Use `python3` instead of `python` if needed. On Windows, you can also use:
 
-The game and tests use only the Python standard library. No `pip install` step is needed to play.
+```bash
+py -3 hog_desktop.py
+```
 
-## What's New in v1.1.0
+In PyCharm, open the project folder, choose a Python 3.10+ interpreter, and run `hog_desktop.py`.
 
-- **Main menu:** start a game, watch computers compete, read the rules, or open the strategy lab.
-- **Named players:** enter names of up to 20 printable characters.
-- **Selectable opponents:** choose any of six strategies through the menu or command line.
-- **Readable turns:** see dice outcomes, the reason for a scoring rule, and both players' totals.
-- **Zero-dice preview:** human players see their guaranteed gain, including Sus Fuss, before choosing.
-- **Match summary:** see the winner, final scores, turns, Sow Sad occurrences, zero-dice turns, and prime bonuses.
-- **Replay:** play another match with the same setup without restarting the program.
-- **Working experiments:** `python hog.py -r` now measures roll counts and strategy win rates.
-- **Reproducible sessions:** optional seeds use a separate random generator.
-- **Safer input:** invalid choices retry; `q`, end-of-input, and Ctrl+C are handled cleanly.
-- **Engine improvements:** one strategy call per turn, optional turn events, faster factor/prime checks, and no duplicate `winner` definition.
-- **Verification:** 39 automated tests plus executable documentation examples.
+**Runtime requirements:** Python 3.10 or newer, Tkinter, and a graphical desktop. No third-party Python packages are needed to play. Tkinter is part of Python's standard library, but some Python distributions install its Tk support separately.
 
-## Game Modes and Controls
+Check Tk support with:
 
-| Menu option | Action |
+```bash
+python -m tkinter
+```
+
+This should open a small test window. On Ubuntu/Debian, missing Tk support can usually be installed with `sudo apt install python3-tk`. Use an interpreter that includes Tk on Windows or macOS. A remote shell without a display cannot open the desktop window; the terminal game remains available with `python hog_ui.py`.
+
+## What's New in v1.2.0
+
+- **Desktop home screen** with three playable modes.
+- **Match setup** for names, human/computer control, six computer strategies, and an optional random seed.
+- **Clickable 0-10 dice controls** and an action button; press Enter to confirm a human move.
+- **Graphical dice** drawn from the actual outcomes, with rolled ones highlighted.
+- **Live score panels**, progress bars, and human/computer turn indicators.
+- **Scoring explanations** for Sow Sad, Boar Brawl, and Sus Fuss.
+- **Zero-dice preview** showing the guaranteed gain before a human chooses.
+- **Scrollable match journal** recording every completed turn.
+- **Winner screen** with final scores and per-player match statistics.
+- **Play again**, **New setup**, and **Review final table** actions after a match.
+- **Rules window** available from the home screen or during play.
+- **Shared incremental game engine**, keeping graphical and terminal scoring consistent.
+- **55 automated checks**, including real Tk window interactions.
+
+## Set Up a Match
+
+![Player and opponent configuration](docs/screenshots/v1.2.0-setup.png)
+
+| Mode | Who controls the players? |
 | --- | --- |
-| `1` | Human vs computer; choose the computer's strategy. |
-| `2` | Two humans sharing one terminal. |
-| `3` | Computer vs computer; choose both strategies. |
-| `4` | Strategy lab; choose games per starting position. |
-| `5` | Read the rules. |
-| `6` | Read the strategy guide. |
-| `0` | Exit. |
+| **You vs computer** | Player 0 is human; Player 1 uses the selected strategy. |
+| **Pass & play** | Two humans share the same screen and take alternating turns. |
+| **Strategy showdown** | Both players use selected computer strategies. |
 
-During a human turn, enter a whole number from **0 to 10**. Enter `q`, `quit`, or `back` to leave a screen or unfinished match. In menu mode this returns to the main menu; in direct `-n` mode it closes the session. At the main menu, use `0` to exit. Ctrl+C or end-of-input exits without a traceback.
+Names can contain 1-20 printable characters. Computer strategy selectors are disabled for human-controlled players. A blank seed gives a fresh random dice sequence; a whole-number seed makes a match reproducible when the same choices are made on the same Python version.
 
-After a completed match, choose `1` to replay or `0` to finish. In menu mode, finishing returns to the main menu.
+Click **Begin match** to start. Player 0 always goes first.
+
+## Play a Turn
+
+![Graphical game board with active human controls](docs/screenshots/v1.2.0-game.png)
+
+1. Check whose score panel has the active border.
+2. Read the guaranteed points available from choosing zero dice.
+3. Click a number from **0 to 10**.
+4. Click **Roll N dice** or **Take free points**. Enter also confirms a human move.
+5. See the actual outcomes, scoring rule, updated total, and journal entry.
+
+Human controls are disabled during computer turns. Computer turns are scheduled through Tk's event loop, so the interface can continue handling window events. A computer-only match advances automatically.
+
+The table shows the **last completed turn's dice**, while the score panel indicates **who plays next**. Gold dice mark a rolled 1, which triggers Sow Sad.
+
+![Boar Brawl and Sus Fuss shown on the desktop board](docs/screenshots/v1.2.0-free-points.png)
+
+Click **Rules** to review the scoring rules. Clicking **Home** during an unfinished match asks whether to leave it. Match progress is kept only while the app is open; this edition does not save games to disk.
+
+## Finish, Replay, or Review
+
+![Winner screen with match statistics](docs/screenshots/v1.2.0-winner.png)
+
+The game ends as soon as a player finishes a turn with at least 100 points, including any Sus Fuss bonus. The winner screen reports final scores, turns played, Sow Sad occurrences, zero-dice turns, and Sus Fuss bonuses.
+
+- **Play again:** restart with the same names, mode, and strategies.
+- **New setup:** choose a new match configuration.
+- **Review final table:** inspect the last dice and scroll through the completed journal. The action button returns to the match summary.
+
+A desktop replay with a fixed seed restarts that seed's dice sequence. Without a seed, it uses a fresh sequence. The retained terminal replay behavior is unchanged: it continues its session's existing dice stream.
 
 ## Game Rules
 
-Player 0 starts. Players alternate turns, choosing 0-10 dice. The first player to finish a turn with **at least 100 points** wins. The game stops immediately, after applying all scoring rules.
+Players alternate turns, choosing 0-10 dice. The goal is **100 points**.
 
-| Rule | Effect | Example |
+| Rule | What happens | Example |
 | --- | --- | --- |
-| **Sow Sad** | Any rolled `1` makes the turn worth only 1 point. Otherwise, sum all dice. | `[4, 1, 6]` earns 1 point. |
+| **Sow Sad** | If any rolled die is 1, earn only 1 point for the turn. Otherwise, earn their sum. | `[4, 1, 6]` earns 1 point. |
 | **Boar Brawl** | Choosing zero dice earns `max(1, 3 * abs(opponent_tens - player_ones))`. | Your score 21, opponent 46: gain 9. |
 | **Sus Fuss** | After adding turn points, a total with exactly 3 or 4 positive factors increases to the next larger prime. | A total of 21 becomes 23. |
 
-Sus Fuss applies after both rolled and zero-dice turns. All chosen dice are rolled, even if a `1` appears early.
+Sus Fuss applies to both rolled and zero-dice turns. All chosen dice are rolled even if a 1 appears early. These rules are unchanged from the original project.
 
-![Detailed score explanations in v1.1.0](docs/screenshots/v1.1.0-game.png)
-
-## Command-Line Examples
-
-Skip the menu and play against the original five-dice opponent:
-
-```bash
-python hog_ui.py -n 1
-```
-
-Play against the adaptive strategy with custom names:
-
-```bash
-python hog_ui.py -n 1 --name0 Meazbah --name1 Computer --strategy1 adaptive
-```
-
-Play with two human players:
-
-```bash
-python hog_ui.py -n 2 --name0 Alice --name1 Bob
-```
-
-Watch one repeatable computer match, then exit without a replay prompt:
-
-```bash
-python hog_ui.py -n 0 --strategy0 adaptive --strategy1 sus --name0 Meazbah --name1 Computer --seed 42 --no-replay
-```
-
-`-n 0` defaults to two five-dice strategies, preserving the original automatic game mode. Without `-n`, the new main menu opens. `--strategy0` affects computer-only mode; `--strategy1` affects modes 0 and 1. Human players always make their own choices.
-
-The same seed and the same sequence of choices reproduce a session on the same Python version. Replays advance the existing dice stream rather than restarting it. A fresh process with the same seed restarts the sequence.
-
-```bash
-python hog_ui.py --help
-python hog.py --help
-python hog_ui.py --version
-```
-
-![Completed match and statistics](docs/screenshots/v1.1.0-summary.png)
+![Rules window](docs/screenshots/v1.2.0-rules.png)
 
 ## Computer Strategies
 
-| CLI name | Function | Decision |
-| --- | --- | --- |
-| `always5` | `always_roll_5` | Always roll five dice. |
-| `always6` | `always_roll(6)` | Always roll six dice. |
-| `catch-up` | `catch_up` | Roll six when behind, otherwise five. |
-| `boar` | `boar_strategy` | Roll zero for at least 11 Boar Brawl points; otherwise six. |
-| `sus` | `sus_strategy` | Roll zero for at least 11 combined Boar Brawl and Sus Fuss points; otherwise six. |
-| `adaptive` | `adaptive_strategy` | Use the original custom strategy described below. |
+| Strategy key | Behavior |
+| --- | --- |
+| `always5` | Always roll five dice. |
+| `always6` | Always roll six dice. |
+| `catch-up` | Roll six when behind, otherwise five. |
+| `boar` | Take zero dice for at least 11 Boar Brawl points; otherwise roll six. |
+| `sus` | Take zero dice for at least 11 combined Boar Brawl and Sus Fuss points; otherwise roll six. |
+| `adaptive` | Use my original score-aware strategy. |
 
-### My Adaptive Strategy
+The adaptive strategy's original decision order is preserved: take a zero-dice win; take at least 10 guaranteed points; roll three if my score is at least 80; otherwise roll eight if the opponent is at least 80; roll six when both are below 30; otherwise roll five. It is a heuristic, not a trained AI model.
 
-The original decision order is preserved:
+## Terminal Game and Strategy Lab
 
-1. Choose zero dice if the resulting score reaches 100.
-2. Choose zero dice if the guaranteed gain is at least 10 points.
-3. If my score is at least 80, roll three dice.
-4. Otherwise, if the opponent has at least 80, roll eight dice.
-5. If both scores are below 30, roll six dice.
-6. Otherwise, roll five dice.
+The previous terminal interface remains available:
 
-This is a score-based heuristic, not a trained AI model. Its performance depends on the opponent and the sample used for evaluation.
+```bash
+python hog_ui.py
+python hog_ui.py -n 1 --name0 Meazbah --strategy1 adaptive
+python hog_ui.py -n 2 --name0 Alice --name1 Bob
+python hog_ui.py -n 0 --strategy0 adaptive --strategy1 sus --seed 42 --no-replay
+```
 
-## Strategy Lab
-
-Run the experiment command that was unfinished in the original release:
+Run sampled experiments from the terminal:
 
 ```bash
 python hog.py -r --games 100 --samples 500 --seed 42
 ```
 
-Equivalent entry point:
+`--games` counts games **per starting position, per strategy**. This command runs 200 games for each of six strategies, or 1,200 games total. `--samples` controls sampled turns for each roll count. The default opponent is `always6`; use `--baseline` to change it.
+
+The lab reports each starting position separately, an overall win rate, and an approximate pooled 95% Wilson interval. Results are sampled estimates rather than guarantees. The lab is a terminal feature in this release; it is not integrated into a graphical chart screen yet.
+
+## Previous Versions and Release Progress
+
+| Version | Main additions | Status |
+| --- | --- | --- |
+| **v1.0.0** | Original coursework simulator, scoring rules, starter text UI, strategy helpers, and adaptive strategy. | Original baseline. |
+| **v1.1.0** | Terminal menus, names, strategy selection, rule explanations, summaries, replay, working experiments, seeds, and 39 tests. | Previous release. |
+| **v1.2.0** | Graphical desktop interface, incremental session engine, match journal, winner screen, real desktop screenshots, and 55 tests. | This release. |
+| v2.0.0 | Dice animation, sound, themes, and richer controls. | Planned after approval. |
+| v2.1.0 | Stronger opponents, move advice, and visual comparisons. | Planned. |
+| v2.2.0 | Profiles, saved progress, history, and tournaments. | Planned. |
+| v3.0.0 | Tutorial, replay viewer, practice settings, and showcase polish. | Planned. |
+
+### v1.1.0 - Improved Terminal Edition
+
+The first upgrade introduced the main menu, named players, selectable strategies, replay, score explanations, and a working experiment command. It used terminal output for all play and had no graphical window.
+
+![Previous v1.1.0 terminal interface](docs/screenshots/v1.1.0-menu.png)
+
+The full [v1.1.0 README](docs/history/v1.1.0.md) and its [validation notes](docs/history/v1.1.0-validation.md) are preserved. Those archived files describe that historical version, including the roadmap as it stood then.
+
+### v1.0.0 - Original Project
+
+The original solution implemented the game rules, complete-game simulator, higher-order strategy tools, and my adaptive strategy. It used fixed player labels, started an automatic game without flags, and supported one or two human players through the starter UI. The experiment flag existed but did not run experiments.
+
+![Original v1.0.0 output](docs/screenshots/v1.0.0-legacy.png)
+
+See [CHANGELOG.md](CHANGELOG.md) for cumulative changes.
+
+## Screenshots and Reproducibility
+
+The **v1.2.0 PNGs are actual captures of the running Tk application** on Linux with Tk 8.6. The capture script plays a real seeded match; it does not inject scores or fabricate dice. In the captured match, the human-side choices follow the adaptive strategy, the opponent uses `sus`, and the seed is 42. The resulting final score is 107-32 over 15 turns.
+
+The historical v1.0.0 and v1.1.0 images remain styled renderings of captured terminal output. Their complete raw transcripts are retained beside the PNGs.
+
+Optional documentation tools:
 
 ```bash
-python hog_experiments.py --run-experiments --games 100 --samples 500 --seed 42
+python tools/capture_desktop.py
+python tools/capture_terminal.py
 ```
 
-- `--games` is the number of games **per starting position, per strategy**. A value of 100 evaluates each candidate over 200 games, and all six candidates over 1,200 games.
-- `--samples` controls the number of sampled turns for each roll count from 1 to 10.
-- `--baseline` selects the opponent; the default is `always6`.
-- The turn-score experiment applies Sow Sad. Complete-game comparisons apply all three rules.
-- First-seat and second-seat win rates are reported separately, with an overall rate and an approximate 95% Wilson interval for pooled wins.
-
-![Measured experiment output](docs/screenshots/v1.1.0-experiments.png)
-
-In the included run on Python 3.12.14, seed 42, the adaptive strategy won **76.0% of 200 games** against `always6`. That is one sampled result; it does not guarantee future wins. Even a strategy playing itself can produce a sampled rate different from 50%.
-
-## Version History
-
-This release keeps the original project as the **v1.0.0 baseline** and adds the first of six planned upgrades.
-
-| Version | What it introduced | Status |
-| --- | --- | --- |
-| **v1.0.0** | Original simulator, all three rules, text interface, higher-order strategy tools, and custom adaptive strategy. | Previous baseline. |
-| **v1.1.0** | Terminal menus, player names, strategy selection, turn explanations, summaries, replay, seeded experiments, tests, and illustrated documentation. | This release. |
-| v1.2.0 | Graphical desktop interface. | Planned; not included. |
-| v2.0.0 | Animations, sound, themes, and richer controls. | Planned. |
-| v2.1.0 | Stronger opponents, optional move advice, and visual comparisons. | Planned. |
-| v2.2.0 | Profiles, saved progress, match history, and tournaments. | Planned. |
-| v3.0.0 | Tutorial, replay viewer, practice settings, and final showcase polish. | Planned. |
-
-### Previous Version: v1.0.0
-
-The original version used fixed player labels and began an automatic game when launched without flags. Interactive modes were available with `-n 1` and `-n 2`. Strategy helpers existed, but the experiment flag only parsed arguments and did not run experiments. It did not provide menus, replay, player naming, or a match statistics summary.
-
-![Original v1.0.0 terminal output](docs/screenshots/v1.0.0-legacy.png)
-
-### About the Screenshots
-
-These images are **styled renderings of real captured terminal output**. The frame and colors are documentation styling; this release runs in your terminal and does not open a graphical game window. Complete, unedited output transcripts are included next to the PNGs in `docs/screenshots/`. The game capture shows an excerpt of turns 11-13; the legacy capture shows its first 18 output lines.
-
-The optional `tools/capture_terminal.py` script regenerates current-version captures. It requires Pillow and a supported monospace font; neither is needed to play or test the game.
+These tools require Pillow; desktop capture also needs a graphical display. Neither tool nor Pillow is required to play or run the automated tests. The terminal capture tool writes version-specific filenames without overwriting the historical captures.
 
 ## Project Files
 
 | File or folder | Purpose |
 | --- | --- |
-| `hog.py` | Rules, original strategy functions, engine, and optional turn events. |
-| `hog_ui.py` | Terminal menu, setup, human input, scoring output, and replay. |
-| `hog_experiments.py` | Seeded roll and strategy experiments. |
-| `dice.py` | Original starter fair and deterministic dice functions. |
-| `ucb.py` | Original starter utility functions. |
-| `tests/` | Rule, engine, strategy, input, and command-line regression tests. |
-| `docs/screenshots/` | Current and previous-version PNGs with their source transcripts. |
-| `docs/VALIDATION.md` | What was checked for this release. |
-| `tools/capture_terminal.py` | Optional documentation capture tool. |
-| `CHANGELOG.md` | Cumulative release history. |
-| `RELEASE_NOTES.md` | GitHub tag, title, and release description. |
+| `hog_desktop.py` | Desktop views, graphical dice, controls, computer timers, rules, and summary. |
+| `hog_match.py` | Validated match configuration, independent of the display. |
+| `hog.py` | Scoring, strategies, `TurnEvent`, incremental `GameSession`, and full-game `play`. |
+| `hog_ui.py` | Retained terminal game and menus. |
+| `hog_experiments.py` | Seeded terminal experiments and win-rate comparisons. |
+| `dice.py`, `ucb.py` | Original supplied support code. |
+| `tests/` | Core, session, terminal, configuration, and real-window GUI checks. |
+| `docs/screenshots/` | Current desktop screenshots and historical terminal captures. |
+| `docs/history/` | Preserved previous-release README and validation notes. |
+| `docs/VALIDATION.md` | Current verification details and platform limits. |
+| `tools/` | Optional screenshot utilities. |
+| `RELEASE_NOTES.md` | Copy-ready GitHub release tag, title, and description. |
 
-## Use the Engine from Python
+## Engine Example
 
-The original simulator functions remain available:
+The desktop uses the same incremental engine as the simulator:
 
 ```python
-from hog import adaptive_strategy, always_roll, play, seeded_dice, sus_update
+from hog import GameSession, seeded_dice
 
-score0, score1 = play(
-    adaptive_strategy,
-    always_roll(6),
-    sus_update,
-    dice=seeded_dice(42),
-)
-print(score0, score1)
+session = GameSession(dice=seeded_dice(42))
+event = session.advance(3)
+print(event.outcomes, session.scores, session.current_player)
 ```
 
-For a custom interface, pass `observer=callback` to `play`. The callback receives an immutable `TurnEvent` after each turn, including actual dice outcomes, ordinary turn points, final score, and the bonus. The engine does not print or reroll dice for display.
+A completed `GameSession` rejects further moves. The original `play` function, positional parameters, and strategy names remain available. Its optional observer receives each completed `TurnEvent` without consuming extra dice.
 
-Input validation now raises `ValueError` for invalid roll counts, invalid starting scores, and non-positive sampling counts, instead of relying on assertions. The game UI keeps the default 100-point goal. Although the engine accepts other goals, `adaptive_strategy` retains its original 100-point thresholds.
+The desktop uses a 100-point goal. The engine accepts other goals, but the original adaptive strategy still uses its 100-point thresholds.
 
 ## Run the Checks
 
-From the project folder:
+From a graphical desktop:
 
 ```bash
 python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-The suite checks the scoring definitions, factor and prime calculations, strategy decision bounds, turn order, immediate game termination, observer behavior, repeatable randomness, menu setup, replay, both human modes, invalid input, clean exit, and real experiment output.
+All **55 tests** pass with a display available. Without a display, the real-window test class is skipped and the remaining 46 tests still run. On Linux CI, a virtual display can include the GUI checks:
 
-This release was verified with **Python 3.12.14 on Linux**. Other supported Python environments can run the same commands; native Windows and macOS execution was not tested in this build.
+```bash
+xvfb-run -a python -m unittest discover -s tests -v
+```
+
+Verified on Linux with Python 3.12.14 / Tk 9.0 and Python 3.12.3 / Tk 8.6. The GUI checks cover setup validation, mode switching, human controls, automatic turns through Tk's event loop, leaving a match, replay, final-table review, rules windows, and controls fitting a 1040x720 window. Native Windows and macOS execution was not tested in this build.
 
 ## Current Scope
 
-This edition is a local terminal game. Statistics shown at the end of a match last only for that session. Graphical controls, saved profiles, persistent history, sound, and stronger opponents belong to later releases.
+This release is a local desktop game with the terminal tools retained. It has a fixed dark palette and immediate dice results. Animations, sound, selectable themes, persistent profiles, saved games, online play, and packaged executables are not included in this version.
 
-## Project Origin and Credits
+## Credits
 
 Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**.
 
-Based on the supplied **Python Programming - Project 1: The Game of Hog** assignment and starter files. `dice.py` and `ucb.py` retain the supplied code; `ucb.py` identifies its utilities as originating from UC Berkeley projects. This expanded GitHub edition refactors `hog.py`, updates `hog_ui.py`, and adds experiments, tests, and documentation.
+Based on the supplied **Python Programming - Project 1: The Game of Hog** assignment and starter files. `dice.py` and `ucb.py` retain the supplied code; `ucb.py` identifies its utilities as originating from UC Berkeley projects. This expanded GitHub edition adds a desktop interface, refactors the reusable engine, and includes experiments, tests, and documentation.
 
-The original assignment limited submission edits to `hog.py`; this expanded edition goes beyond that coursework file scope.
+The original coursework submission limited edits to `hog.py`; this GitHub edition goes beyond that assignment's file scope.

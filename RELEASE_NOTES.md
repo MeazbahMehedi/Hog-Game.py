@@ -1,50 +1,52 @@
 # GitHub Release Details
 
-**Tag:** `v1.1.0`
+**Tag:** `v1.2.0`
 
-**Title:** `v1.1.0 - Improved Terminal Edition`
+**Title:** `v1.2.0 - Graphical Desktop Edition`
 
 Copy the description below into the GitHub release description field.
 
 ---
 
-The first upgrade to **The Game of Hog**, building on the original Python
-Programming project with a complete terminal experience.
+Hog now has a complete **graphical desktop interface** built with Tkinter.
+This release builds on v1.1.0 while retaining its terminal game and strategy lab.
 
 ## What's New
 
-- Main menu with human vs computer, two-player, and computer-only modes.
-- Custom player names and six selectable computer strategies.
-- Clear dice output, rule explanations, scoreboard, and zero-dice point preview.
-- Match summaries and replay without restarting the program.
-- Working strategy experiments with reproducible seeds and results for both
-  starting positions.
-- Refactored engine with turn events, faster number checks, safer inputs,
-  and the original adaptive strategy preserved.
-- Updated README, cumulative changelog, terminal captures, and 39 automated tests.
+- Desktop home screen with human vs computer, local two-player, and watch modes.
+- Player names, six selectable computer strategies, and optional random seeds.
+- Graphical dice showing actual outcomes, with rolled ones highlighted.
+- Clickable 0-10 controls, Enter-to-confirm, active-player panels, and score bars.
+- Zero-dice point previews and explanations of Sow Sad, Boar Brawl, and Sus Fuss.
+- Scrollable match journal and a rules window.
+- Winner screen with final scores and per-player statistics.
+- Replay, new setup, and final-table review.
+- Shared incremental engine keeping terminal and desktop scores consistent.
+- Updated README with real desktop screenshots, previous-version history,
+  archived v1.1.0 documentation, and cumulative changelog.
 
 ## Start Playing
 
-Download and extract `hog-v1.1.0.zip`, open its project folder, and run:
+Extract `hog-v1.2.0.zip`, open its project folder, and run:
+
+```bash
+python hog_desktop.py
+```
+
+Requires Python 3.10+, Tkinter, and a graphical desktop. No third-party Python
+packages are needed to play. The terminal edition remains available:
 
 ```bash
 python hog_ui.py
 ```
 
-Requires Python 3.10 or newer. The game needs no additional packages.
-
-## Try the Strategy Lab
-
-```bash
-python hog.py -r --games 100 --samples 500 --seed 42
-```
-
 ## Validation
 
-- All 39 unit and command-line tests pass.
-- Executable documentation examples pass.
-- Verified on Python 3.12.14 / Linux.
+- All 55 automated checks pass with a graphical display available.
+- 18 executable documentation examples pass.
+- Verified on Linux with Python 3.12.14 / Tk 9.0 and Python 3.12.3 / Tk 8.6.
+- Tests include real window interactions, computer timers, mode switching,
+  replay, rules, final-table review, and scoring consistency.
 
-This release uses a terminal interface. The graphical desktop edition is the
-next planned upgrade. See the README for the original v1.0.0 history, current
-terminal captures, controls, and complete usage instructions.
+This version uses immediate dice results and a fixed dark palette.
+Animation, sound, and selectable themes are planned for v2.0.0.
