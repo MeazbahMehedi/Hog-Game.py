@@ -4,9 +4,7 @@
 
 **Title:** `v1.2.0 - Graphical Desktop Edition`
 
-Copy the description below into the GitHub release description field.
 
----
 
 Hog now has a complete **graphical desktop interface** built with Tkinter.
 This release builds on v1.1.0 while retaining its terminal game and strategy lab.
