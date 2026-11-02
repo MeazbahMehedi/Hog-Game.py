@@ -1,0 +1,92 @@
+"""Theme tokens and validated, atomically saved desktop preferences."""
+
+from dataclasses import asdict, dataclass
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+
+@dataclass(frozen=True)
+class Palette:
+    bg: str
+    panel: str
+    raised: str
+    border: str
+    text: str
+    muted: str
+    accent: str
+    accent_text: str
+    gold: str
+    red: str
+    disabled: str
+    die: str
+    pip: str
+    shadow: str
+    hero: str
+
+
+PALETTES = {
+    "dark": Palette("#0d1626", "#17243a", "#20324c", "#30445e", "#eef3f8",
+                    "#a3b4ca", "#85e0ba", "#0d1626", "#f4c375", "#ff9c9c",
+                    "#71869f", "#eff5f4", "#172a32", "#080f1c", "#1d3b3a"),
+    "light": Palette("#f3f6f8", "#ffffff", "#e6edf1", "#cedae1", "#152c36",
+                     "#536976", "#147758", "#ffffff", "#92540a", "#b32e43",
+                     "#86979f", "#f4f8fa", "#172a32", "#d3dfe5", "#deeee7"),
+}
+
+PACE_DELAYS = {"relaxed": 1200, "normal": 700, "fast": 220}
+
+
+@dataclass(frozen=True)
+class Preferences:
+    theme: str = "dark"
+    animations: bool = True
+    sound: bool = False
+    pace: str = "normal"
+
+    def __post_init__(self):
+        if self.theme not in PALETTES or self.pace not in PACE_DELAYS:
+            raise ValueError("Unknown theme or computer pace.")
+        if type(self.animations) is not bool or type(self.sound) is not bool:
+            raise ValueError("Animation and sound settings must be true or false.")
+
+
+def default_preferences_path():
+    if sys.platform == "win32":
+        base = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming"))
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library/Application Support"
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    return base / "Hog" / "settings.json"
+
+
+def load_preferences(path):
+    """Use defaults for a missing, malformed, or invalid preferences file."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return Preferences()
+        keys = ("theme", "animations", "sound", "pace")
+        return Preferences(**{key: data[key] for key in keys if key in data})
+    except (OSError, ValueError, TypeError):
+        return Preferences()
+
+
+def save_preferences(path, preferences):
+    """Write beside the destination then replace it; report OS errors to caller."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                                         dir=destination.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(asdict(preferences), stream, indent=2)
+            stream.write("\n")
+        os.replace(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
