@@ -11,7 +11,7 @@ from random import Random
 from dice import six_sided, make_test_dice
 
 GOAL = 100
-VERSION = "1.2.0"
+VERSION = "2.0.0"
 
 
 def _integer(value, name, minimum=0, maximum=None):

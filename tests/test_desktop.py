@@ -9,6 +9,7 @@ from unittest.mock import patch
 import hog_desktop
 from hog import seeded_dice, STRATEGIES, play, sus_update
 from hog_match import MatchConfig
+from hog_preferences import Preferences
 
 
 class DesktopTests(unittest.TestCase):
@@ -26,7 +27,8 @@ class DesktopTests(unittest.TestCase):
         self.root = hog_desktop.tk.Tk()
         self.errors = []
         self.root.report_callback_exception = lambda kind, error, trace: self.errors.append(error)
-        self.app = hog_desktop.HogApp(self.root, cpu_delay=600000)
+        self.app = hog_desktop.HogApp(self.root, cpu_delay=600000,
+                                      preferences=Preferences(animations=False))
         self.root.update()
 
     def tearDown(self):
@@ -151,7 +153,7 @@ class DesktopLauncherTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "hog_desktop.py", "--version"],
                                 cwd=root, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "1.2.0")
+        self.assertEqual(result.stdout.strip(), "2.0.0")
 
 
 if __name__ == "__main__":

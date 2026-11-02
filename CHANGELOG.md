@@ -2,6 +2,16 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v2.0.0 - Animated Game Edition - 2026-10-29
+
+- Added rotating/bouncing dice previews using independent cosmetic randomness.
+- Added live light/dark themes, pause/resume, confirmed restart, and keyboard controls.
+- Added reduced motion, optional WAV audio, computer pace, and atomically saved preferences.
+- Settings pause running matches and restore their prior pause state.
+- Added original generated WAV assets and graceful missing-audio fallback.
+- Expanded verification to 82 checks and preserved prior README files and captures.
+- Scoring, original strategies, terminal modes, and experiments remain unchanged.
+
 ## v1.2.0 - Graphical Desktop Edition - 2026-10-28
 
 ### Added
@@ -88,7 +98,6 @@ The uploaded coursework solution is labeled v1.0.0 for project history.
 
 ## Planned After Approval
 
-- v2.0.0: animation and presentation improvements.
 - v2.1.0: stronger opponents and move advice.
 - v2.2.0: profiles, history, and tournaments.
 - v3.0.0: final showcase edition.
