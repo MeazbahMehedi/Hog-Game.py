@@ -2,6 +2,16 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v2.1.0 - Smart Opponent Edition - 2026-10-29
+
+- Added Easy (five dice), Medium (expected-gain), and Hard (optimal-policy) opponents.
+- Added exact dice distributions and a dynamic-programming policy for all 10,000 active score pairs.
+- Added optional move advice with all legal choices, expected gains, Sow Sad risks, and model win chances.
+- Added a background graphical comparison lab with equal-seat matches and Wilson intervals.
+- Preserved original strategies, scoring, animations, themes, sound, settings, and terminal modes.
+- Added 12 regression checks; full suite now 94 checks. Archived v2.0.0 documentation and screenshots.
+- Included a reproducible benchmark; model probabilities and sampled results are labeled separately.
+
 ## v2.0.0 - Animated Game Edition - 2026-10-29
 
 - Added rotating/bouncing dice previews using independent cosmetic randomness.
@@ -98,7 +108,6 @@ The uploaded coursework solution is labeled v1.0.0 for project history.
 
 ## Planned After Approval
 
-- v2.1.0: stronger opponents and move advice.
 - v2.2.0: profiles, history, and tournaments.
 - v3.0.0: final showcase edition.
 

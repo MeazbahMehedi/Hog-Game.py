@@ -29,7 +29,7 @@ def capture(root, name, window=None):
     target.winfo_pointerxy()
     x, y = target.winfo_rootx(), target.winfo_rooty()
     box = (x, y, x + target.winfo_width(), y + target.winfo_height())
-    path = ROOT / "docs" / "screenshots" / f"v2.0.0-{name}.png"
+    path = ROOT / "docs" / "screenshots" / f"v2.1.0-{name}.png"
     ImageGrab.grab(bbox=box).save(path)
     print(path.name)
 
@@ -37,14 +37,20 @@ def capture(root, name, window=None):
 def main():
     # Each scene gets a fresh real window, avoiding stale backing pixels on
     # window-manager-free virtual displays. All match scores come from play.
-    for scene in ("home", "setup", "game", "free-points", "winner", "rules", "light", "settings", "paused"):
+    for scene in ("home", "setup", "game", "free-points", "winner", "rules", "light", "settings", "paused", "advisor", "comparison"):
         root = tk.Tk()
         errors = []
         root.report_callback_exception = lambda kind, error, traceback: errors.append(error)
         app = HogApp(root, cpu_delay=600000, preferences=Preferences(animations=False))
         root.geometry("1160x820+20+20")
         try:
-            if scene == "light":
+            if scene == "advisor":
+                app.start_match(MatchConfig(seed=42))
+                app.show_advice()
+            elif scene == "comparison":
+                app.show_comparison()
+                app.comparison_run_button.invoke()
+            elif scene == "light":
                 app.set_theme("light")
             elif scene == "settings":
                 app.show_settings()
@@ -72,7 +78,16 @@ def main():
                     app.show_winner()
             elif scene == "rules":
                 app.show_rules()
-            capture(root, scene, app.rules_window if scene == "rules" else app.settings_window if scene == "settings" else None)
+            if scene in ("advisor", "comparison"):
+                def wait_ready():
+                    text = app.analysis_status.cget("text")
+                    if text.startswith(("Calculating", "Simulating")):
+                        root.after(30, wait_ready)
+                    else:
+                        root.quit()
+                root.after(30, wait_ready)
+                root.mainloop()
+            capture(root, scene, app.analysis_window if scene in ("advisor", "comparison") else  app.rules_window if scene == "rules" else app.settings_window if scene == "settings" else None)
             if errors:
                 raise errors[0]
         finally:

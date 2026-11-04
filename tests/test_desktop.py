@@ -146,6 +146,29 @@ class DesktopTests(unittest.TestCase):
                              self.root.winfo_rooty() + self.root.winfo_height())
         self.assertTrue(all(button.winfo_width() >= 25 for button in self.app.count_buttons))
 
+    def test_advisor_renders_without_playing_a_turn(self):
+        self.start(mode=1)
+        before = self.app.session.scores
+        self.app.show_advice()
+        self.root.after(600, self.root.quit)
+        self.root.mainloop()
+        self.assertIn("Model win chance", self.app.analysis_status.cget("text"))
+        self.assertEqual(self.app.session.scores, before)
+        self.assertEqual(self.app.events, [])
+        self.app.close_analysis()
+        self.assertIsNone(self.app.analysis_pending)
+
+    def test_comparison_renders_worker_results_and_closes_cleanly(self):
+        self.app.show_comparison()
+        rows = (("hard", 30, 25, .6875, .58, .78),)
+        with patch("hog_desktop.compare_opponents", return_value=rows):
+            self.app.comparison_run_button.invoke()
+            self.root.after(300, self.root.quit)
+            self.root.mainloop()
+        self.assertIn("Baseline: adaptive", self.app.analysis_status.cget("text"))
+        self.assertEqual(str(self.app.comparison_run_button.cget("state")), "normal")
+        self.app.close_analysis()
+
 
 class DesktopLauncherTests(unittest.TestCase):
     def test_version_flag_does_not_need_display(self):
@@ -153,7 +176,7 @@ class DesktopLauncherTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "hog_desktop.py", "--version"],
                                 cwd=root, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "2.0.0")
+        self.assertEqual(result.stdout.strip(), "2.1.0")
 
 
 if __name__ == "__main__":

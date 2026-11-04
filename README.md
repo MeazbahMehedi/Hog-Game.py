@@ -1,10 +1,42 @@
 # The Game of Hog
 
-**v2.0.0 · Animated Game Edition · Python 3.10+ / Tkinter**
+**v2.1.0 · Smart Opponent Edition · Python 3.10+ / Tkinter**
 
-The third upgrade adds animated dice, live light/dark themes, optional sound, pause/resume, restart, keyboard shortcuts, and saved display preferences. The original rules, strategies, terminal game, and experiment lab remain available.
+This release adds three difficulty choices, an optional move advisor, and a graphical comparison lab. Existing animations, themes, sound, pause/restart, terminal modes, and original strategies remain available.
 
-![Desktop home](docs/screenshots/v2.0.0-home.png)
+![Smart Opponent Edition](docs/screenshots/v2.1.0-home.png)
+
+## What's New in v2.1.0
+
+- **Easy:** a fixed five-dice opponent for practice.
+- **Medium:** maximizes exact expected score gain, including Sus Fuss; takes a guaranteed zero-dice win.
+- **Hard:** chooses the move with the best model probability of winning the complete match against an optimal opponent.
+- **Move advisor:** click **Move advice / H** during a human turn. See every legal move, expected gain, Sow Sad risk, and model win chance. Advice never plays your move.
+- **Strategy comparison:** open from Home, choose a baseline and games per starting seat, then run real matches in a background worker. Bars show measured win rates; gold lines show approximate 95% Wilson intervals.
+- Policy preparation and comparisons run outside Tk callbacks. The worker never touches widgets.
+- Original six strategies remain; all nine are selectable in desktop and terminal modes.
+
+![Optional move advice](docs/screenshots/v2.1.0-advisor.png)
+
+The advisor displays a snapshot of the position shown at the top. It is requested explicitly, rather than shown automatically during ordinary play. If you continue playing with the window open, request fresh advice for the new position.
+
+![Measured comparisons](docs/screenshots/v2.1.0-comparison.png)
+
+### How the Hard Opponent Works
+
+This edition uses exact finite-state probability calculations rather than noisy Monte Carlo move estimates. For each roll count, the program counts every possible non-one sum and includes the probability of Sow Sad. Zero dice is deterministic. Sus Fuss is applied to every possible resulting score.
+
+The policy solves 10,000 active score pairs in descending total-score order. Every turn increases a score, so the dependency graph is acyclic. It selects the action maximizing `sum(P(outcome) * (1 - opponent_value(next_state)))`, treating a winning turn as value 1. Near ties favor fewer dice.
+
+**Assumptions:** fair six-sided dice, the three original rules, goal 100, and optimal play by both players after the considered move. The displayed model chance is not a prediction of the next roll or a measured win rate against the selected opponent. No trained model, API, GPU, or network connection is involved.
+
+Medium optimizes immediate points; Hard optimizes winning the match. Difficulty labels are not a guarantee of monotonically increasing empirical win rates against every heuristic.
+
+### Measured Benchmark
+
+An included run used 100 games per starting seat, seed 42, and the original adaptive strategy as baseline. Hard won **112/200 (56.0%)**, with an approximate 95% Wilson interval of **49.1%-62.7%**. Medium won 95/200 (47.5%). These are sampled results with overlapping uncertainty, not proof of superiority in every matchup. Full counts and intervals are in [benchmark.json](docs/benchmark.json).
+
+The comparison screen evaluates six named candidates, including Easy and its identical five-dice baseline, against any of the nine strategies. It resets the same seed for each candidate, so runs are reproducible. `--games` in the terminal experiment lab still evaluates all nine available strategies.
 
 ## Start
 
@@ -16,7 +48,7 @@ python hog_desktop.py
 
 Python 3.10+, Tkinter, and a graphical desktop are required. No third-party Python packages are required to play. On Windows, `py -3 hog_desktop.py` also works. On Linux, Tk support may require `python3-tk`. Check with `python -m tkinter`.
 
-## New in v2.0.0
+## Retained from v2.0.0
 
 - Dice roll previews rotate and bounce before the actual result is resolved once.
 - Animation uses independent randomness and never alters seeded scoring outcomes.
@@ -45,6 +77,7 @@ Python 3.10+, Tkinter, and a graphical desktop are required. No third-party Pyth
 | T | Switch theme |
 | M | Toggle optional sound |
 | F1 | Rules |
+| H | Request move advice during a human turn |
 | Esc | Home, confirming before leaving a match |
 
 Shortcuts do not interfere with typing in name/seed fields. Mouse controls remain available. Human inputs are locked during rolling and computer turns.
@@ -77,7 +110,7 @@ Choose human vs computer, two humans, or computer vs computer. Player 0 starts; 
 - **Boar Brawl:** zero dice earns `max(1, 3 * abs(opponent_tens - player_ones))`.
 - **Sus Fuss:** totals with exactly 3 or 4 positive factors rise to the next prime, including after zero-dice turns.
 
-All six strategies remain: `always5`, `always6`, `catch-up`, `boar`, `sus`, and the original `adaptive` heuristic. The winner screen offers replay, new setup, and final-table review. A fixed seed restarts on desktop replay.
+The original six strategies remain: `always5`, `always6`, `catch-up`, `boar`, `sus`, and the original `adaptive` heuristic. The winner screen offers replay, new setup, and final-table review. A fixed seed restarts on desktop replay.
 
 ![Game board](docs/screenshots/v2.0.0-game.png)
 
@@ -97,8 +130,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v1.0.0 | Original coursework simulator, rules, text interface, and adaptive strategy. |
 | v1.1.0 | Terminal menus, names, opponent selection, replay, working experiments, seeds, and 39 checks. |
 | v1.2.0 | First graphical desktop interface, journal, winner screen, incremental engine, and 55 checks. |
-| **v2.0.0** | Animation, themes, optional sound, pause/restart, shortcuts, settings persistence, and 82 checks. |
-| v2.1.0 | Planned: stronger opponents and move advice. |
+| v2.0.0 | Animation, themes, optional sound, pause/restart, shortcuts, settings persistence, and 82 checks. |
+| **v2.1.0** | Easy/Medium/Hard opponents, exact win-probability policy, optional advice, visual comparisons, and 94 checks. |
 | v2.2.0 | Planned: profiles, history, and tournaments. |
 | v3.0.0 | Planned: final showcase edition. |
 
@@ -108,13 +141,16 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Original project](docs/screenshots/v1.0.0-legacy.png)
 
-Full earlier documentation: [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+![Previous animated edition](docs/screenshots/v2.0.0-home.png)
+
+Full earlier documentation: [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
 | Module | Responsibility |
 | --- | --- |
-| `hog.py` | Rules, strategies, incremental sessions, full-match simulator |
+| `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
+| `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup |
 | `hog_desktop.py` | Tk views, controls, animation and cancellable timers |
 | `hog_preferences.py` | Palette tokens, validated settings, atomic saving |
@@ -134,11 +170,11 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-82 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
+94 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, saved matches, stronger AI opponents, or packaged executables. These remain later-release work.
+This edition does not include online play, profiles, saved matches, or packaged executables. These remain later-release work.
 
 ## Credits
 

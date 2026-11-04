@@ -11,7 +11,7 @@ from random import Random
 from dice import six_sided, make_test_dice
 
 GOAL = 100
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 
 def _integer(value, name, minimum=0, maximum=None):
@@ -299,6 +299,9 @@ def adaptive_strategy(score, opponent_score):
     return 5
 
 
+from hog_ai import easy_strategy, medium_strategy, hard_strategy
+
+
 STRATEGIES = {
     "always5": (always_roll_5, "Always roll 5", "A steady five-dice baseline."),
     "always6": (always_roll(6), "Always roll 6", "A six-dice comparison baseline."),
@@ -306,6 +309,9 @@ STRATEGIES = {
     "boar": (boar_strategy, "Boar Brawl", "Take zero dice for at least 11 free points."),
     "sus": (sus_strategy, "Sus Fuss", "Include the prime bonus when choosing zero dice."),
     "adaptive": (adaptive_strategy, "Adaptive", "The original custom score-aware strategy."),
+    "easy": (easy_strategy, "Easy", "Five-dice opponent for practice."),
+    "medium": (medium_strategy, "Medium", "Maximize exact expected score gain."),
+    "hard": (hard_strategy, "Hard", "Optimize win probability against optimal play."),
 }
 
 

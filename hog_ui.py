@@ -1,4 +1,4 @@
-"""Hog v2.0.0: the retained dependency-free terminal interface.
+"""Hog v2.1.0: the retained dependency-free terminal interface.
 
 Run without flags for the menu, or keep using the original -n 0/1/2 modes.
 """
@@ -71,7 +71,7 @@ def choose_strategy(prompt):
     keys = list(STRATEGIES)
     for index, key in enumerate(keys, 1):
         print(f"    [{index}] {STRATEGIES[key][1]} ({key})")
-    return keys[get_int("  Strategy [1-6]: ", 1, len(keys)) - 1]
+    return keys[get_int("  Strategy [1-9]: ", 1, len(keys)) - 1]
 
 
 def show_rules():

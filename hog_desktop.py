@@ -10,6 +10,8 @@ from dataclasses import fields, replace
 import math
 from pathlib import Path
 from random import Random
+from concurrent.futures import ThreadPoolExecutor
+from hog_ai import policy, analyze_moves, advice_text, compare_opponents
 
 try:
     import tkinter as tk
@@ -61,6 +63,10 @@ class HogApp:
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None):
+        self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hog-analysis")
+        self.policy_future = self.worker.submit(policy)
+        self.analysis_window = None
+        self.analysis_pending = None
         self.root = root
         self.preferences_path = Path(preferences_path) if preferences_path is not None else None
         self.preferences = preferences or (load_preferences(self.preferences_path)
@@ -159,6 +165,8 @@ class HogApp:
     def close(self):
         self.cancel_pending()
         self.audio.stop()
+        self.close_analysis()
+        self.worker.shutdown(wait=False, cancel_futures=True)
         self.root.destroy()
 
     def navigate_home(self):
@@ -390,6 +398,8 @@ class HogApp:
                 self.toggle_pause()
             elif key == "r":
                 self.restart_match()
+            elif key == "h":
+                self.show_advice()
             else:
                 return None
         else:
@@ -407,6 +417,7 @@ class HogApp:
         self.label(copy, "Roll the dice, take the free points, and race to 100.\n"
                         "Three special rules. Plenty of ways to win.", 12, fg=self.palette.muted).pack(anchor="w")
         self.button(copy, "Start a match  >", lambda: self.show_setup(1)).pack(anchor="w", pady=(22, 0))
+        self.button(copy, "Strategy comparison", self.show_comparison, kind="secondary").pack(anchor="w", pady=(10, 0))
         art = tk.Canvas(hero, width=305, height=284, bg=self.palette.panel, highlightthickness=0)
         art.pack(side="right", padx=(0, 24), pady=20)
         art.create_oval(25, 12, 290, 277, fill=self.palette.hero, outline="")
@@ -534,6 +545,9 @@ class HogApp:
         self.restart_button = self.button(title, "Restart / R", self.restart_match, kind="secondary")
         self.restart_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.restart_button.pack(side="right")
+        self.advice_button = self.button(title, "Move advice / H", self.show_advice, kind="secondary")
+        self.advice_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
+        self.advice_button.pack(side="right", padx=(0, 8))
         self.pause_button = self.button(title, "Pause / P", self.toggle_pause, kind="secondary")
         self.pause_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.pause_button.pack(side="right", padx=8)
@@ -673,6 +687,7 @@ class HogApp:
             selected = count == self.selected_count
             button.configure(state="normal" if human else "disabled", bg=self.palette.accent if selected else self.palette.raised,
                              fg=self.palette.accent_text if selected else self.palette.text, highlightbackground=self.palette.accent if selected else self.palette.raised)
+        self.advice_button.configure(state="normal" if human else "disabled")
         self.pause_button.configure(text="Resume / P" if self.paused else "Pause / P",
                                     state="disabled" if finished else "normal")
         if self.paused:
@@ -756,6 +771,9 @@ class HogApp:
                 or self.config.is_human(self.session.current_player)):
             return
         who = self.session.current_player
+        if self.config.strategies[who] == "hard" and not self.policy_future.done():
+            self.pending = self.root.after(30, self.computer_turn)
+            return
         strategy = STRATEGIES[self.config.strategies[who]][0]
         count = strategy(self.session.scores[who], self.session.scores[1 - who])
         self.complete_turn(count)
@@ -854,6 +872,120 @@ class HogApp:
         self.button(actions, "Review final table", self.build_game, kind="secondary").pack(side="left")
         seed_note = "A fixed seed restarts the same dice sequence on replay." if self.config.seed is not None else "No seed selected: each new match uses a fresh dice sequence."
         self.label(self.body, seed_note, 9, fg=self.palette.muted).pack(anchor="w", pady=(18, 0))
+
+    def close_analysis(self):
+        if self.analysis_pending is not None:
+            self.root.after_cancel(self.analysis_pending)
+            self.analysis_pending = None
+        if self.analysis_window is not None and self.analysis_window.winfo_exists():
+            self.analysis_window.destroy()
+        self.analysis_window = None
+
+    def analysis_shell(self, title):
+        self.close_analysis()
+        window = tk.Toplevel(self.root)
+        self.analysis_window = window
+        window.title(title)
+        window.geometry("860x720")
+        window.configure(bg=self.palette.bg)
+        window.transient(self.root)
+        window.protocol("WM_DELETE_WINDOW", self.close_analysis)
+        inside = tk.Frame(window, bg=self.palette.bg)
+        inside.pack(fill="both", expand=True, padx=26, pady=22)
+        self.label(inside, title, 23, bold=True).pack(anchor="w", pady=(0, 12))
+        return inside
+
+    def poll_analysis(self, future, callback):
+        self.analysis_pending = None
+        if self.analysis_window is None or not self.analysis_window.winfo_exists():
+            return
+        if not future.done():
+            self.analysis_pending = self.root.after(30, lambda: self.poll_analysis(future, callback))
+            return
+        try:
+            result = future.result()
+        except Exception as error:
+            self.analysis_status.configure(text=f"Analysis could not complete: {error}")
+            return
+        callback(result)
+
+    def show_advice(self):
+        if (self.screen != "game" or self.session.finished or self.animating or self.paused
+                or not self.config.is_human(self.session.current_player)):
+            return
+        who = self.session.current_player
+        score, opponent = self.session.scores[who], self.session.scores[1 - who]
+        panel = self.analysis_shell("Move advisor")
+        self.label(panel, f"Position: {score} vs {opponent} / advice does not play a move", 10,
+                   fg=self.palette.muted).pack(anchor="w")
+        self.analysis_status = self.label(panel, "Calculating fair-dice probabilities...", 10,
+                                          wraplength=800, fg=self.palette.accent)
+        self.analysis_status.pack(anchor="w", pady=12)
+        chart = tk.Canvas(panel, height=385, bg=self.palette.panel, highlightthickness=0)
+        chart.pack(fill="x")
+        self.label(panel, "Bars show model win chance; not the probability of winning this turn.",
+                   9, fg=self.palette.muted).pack(anchor="w", pady=10)
+
+        def ready(rows):
+            self.analysis_status.configure(text=advice_text(score, opponent, rows))
+            best = max(row.win_probability for row in rows)
+            for index, row in enumerate(rows):
+                y = 15 + index * 32
+                selected = abs(row.win_probability - best) < 1e-12
+                chart.create_text(18, y + 9, text=f"{row.dice:2d} dice", anchor="w", fill=self.palette.text)
+                chart.create_rectangle(90, y, 90 + 500 * row.win_probability, y + 19,
+                                       fill=self.palette.accent if selected else self.palette.border, outline="")
+                chart.create_text(610, y + 9, text=f"{row.win_probability:.1%} | gain {row.expected_gain:.2f}",
+                                  anchor="w", fill=self.palette.text)
+        self.poll_analysis(self.worker.submit(analyze_moves, score, opponent), ready)
+
+    def show_comparison(self):
+        panel = self.analysis_shell("Strategy comparison")
+        controls = tk.Frame(panel, bg=self.palette.bg)
+        controls.pack(fill="x")
+        self.label(controls, "Games per seat", 10).pack(side="left")
+        games = tk.StringVar(self.root, "40")
+        tk.Entry(controls, textvariable=games, width=6).pack(side="left", padx=8)
+        self.label(controls, "Baseline", 10).pack(side="left")
+        baseline = tk.StringVar(self.root, "adaptive")
+        ttk.Combobox(controls, textvariable=baseline, values=tuple(STRATEGIES), width=11,
+                     state="readonly", style="Hog.TCombobox").pack(side="left", padx=8)
+        chart = tk.Canvas(panel, height=360, bg=self.palette.panel, highlightthickness=0)
+        chart.pack(fill="x", pady=18)
+        self.analysis_status = self.label(panel, "Run a measured comparison. Seed: 42. Equal games in both starting seats.",
+                                          10, wraplength=790, fg=self.palette.muted)
+        self.analysis_status.pack(anchor="w")
+
+        def run():
+            try:
+                count = int(games.get())
+                if not 1 <= count <= 2000:
+                    raise ValueError
+            except ValueError:
+                self.analysis_status.configure(text="Enter 1-2000 games per seat.")
+                return
+            chosen = baseline.get()
+            run_button.configure(state="disabled")
+            self.analysis_status.configure(text="Simulating matches in the background...")
+
+            def ready(rows):
+                run_button.configure(state="normal")
+                chart.delete("all")
+                for index, (key, first, second, rate, low, high) in enumerate(rows):
+                    y = 20 + index * 52
+                    chart.create_text(15, y + 12, text=key, anchor="w", fill=self.palette.text)
+                    chart.create_rectangle(110, y, 110 + 450 * rate, y + 25,
+                                           fill=self.palette.accent, outline="")
+                    chart.create_line(110 + 450 * low, y + 13, 110 + 450 * high, y + 13,
+                                      fill=self.palette.gold, width=3)
+                    chart.create_text(585, y + 12, text=f"{rate:.1%}  ({first}+{second} wins)",
+                                      anchor="w", fill=self.palette.text)
+                self.analysis_status.configure(text=f"Baseline: {chosen}. {count * 2} games per candidate, seed 42. "
+                    "Gold lines: approximate 95% Wilson intervals. Estimates are not guarantees.")
+            self.poll_analysis(self.worker.submit(compare_opponents, count, 42, chosen), ready)
+        run_button = self.button(controls, "Run comparison", run)
+        run_button.pack(side="right")
+        self.comparison_run_button = run_button
 
     def show_rules(self):
         if self.rules_window is not None and self.rules_window.winfo_exists():

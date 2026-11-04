@@ -1,15 +1,17 @@
 # GitHub Release Details
 
-**Tag:** `v2.0.0`
+**Tag:** `v2.1.0`
 
-**Title:** `v2.0.0 - Animated Game Edition`
+**Title:** `v2.1.0 - Smart Opponent Edition`
 
 ## Description
 
-Hog gains animated dice, light/dark themes, optional sound effects, pause/resume, confirmed restart, keyboard shortcuts, reduced motion, adjustable computer pace, and saved preferences.
+Hog gains Easy, Medium, and Hard opponents, an optional move advisor with explanations, and a visual strategy comparison screen.
 
-The original rules, six strategies, desktop modes, terminal game, and experiment lab are retained. The README includes current screenshots, previous-version details, and archived documentation.
+Hard uses exact win-probability calculations for fair six-sided Hog. The advisor compares every legal move, while the comparison lab runs real matches in both starting positions and reports uncertainty intervals. Original strategies and all v2.0.0 presentation features remain.
 
-Extract the ZIP and run `python hog_desktop.py`. Requires Python 3.10+, Tkinter, and a graphical desktop. No third-party Python packages are required to play.
+Extract and run `python hog_desktop.py`. Requires Python 3.10+, Tkinter, and a desktop display. No third-party Python packages are needed to play.
 
-Verified: 82 automated checks and 18 executable documentation examples. Optional audio degrades silently when unavailable. Stronger opponents and move advice are planned for v2.1.0.
+Includes updated screenshots, cumulative README and changelog, previous-release documentation, and measured benchmark data. Verified: 94 automated checks and 18 documentation examples.
+
+Profiles, saved progress, and tournaments are planned for v2.2.0.
