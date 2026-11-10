@@ -1,0 +1,2 @@
+# Optional native packaging only; not required for source play.
+PyInstaller==6.22.3

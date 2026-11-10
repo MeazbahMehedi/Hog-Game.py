@@ -2,6 +2,18 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.0.0 - Showcase Edition - 2026-10-29
+
+- Added four interactive tutorial exercises backed by real scoring functions.
+- Added validated read-only match replay with first/previous/play/pause/next/last controls.
+- Added practice goals, starting scores, seeds, opponent choice, and optional Sus Fuss.
+- Isolated practice from profiles, saves, history, and optimal-policy advice.
+- Added a high-contrast palette, larger label/control text, and an accessibility panel.
+- Added a tested Linux x86_64 one-folder build, optional packaging requirements, and Windows/native build scripts.
+- Added an in-memory desktop smoke-test command and installation guide.
+- Expanded the suite to 122 checks; preserved previous release documentation and screenshots.
+- Completed all six planned upgrades from the original coursework baseline.
+
 ## v2.2.0 - Profiles and Tournament Edition - 2026-10-29
 
 - Added local profiles, human-seat assignment, persistent statistics, six achievements, and leaderboard.
@@ -116,8 +128,6 @@ The uploaded coursework solution is labeled v1.0.0 for project history.
 - Had no main menu, custom player labels, replay, or match summary.
 - The experiment command-line flag was present but unfinished.
 
-## Planned After Approval
+## Release Plan Complete
 
-- v3.0.0: final showcase edition.
-
-These versions are a roadmap and are not part of the v1.2.0 package.
+All six planned upgrades have been delivered.

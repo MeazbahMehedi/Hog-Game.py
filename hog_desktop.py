@@ -26,6 +26,7 @@ from hog import GOAL, STRATEGIES, VERSION, GameSession, seeded_dice, sus_update
 from hog_match import MatchConfig
 from hog_storage import Store
 from hog_tournament import run_tournament, export_tournament
+from hog_showcase import PracticeRules, tutorial_lessons, replay_states
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
                              load_preferences, save_preferences)
@@ -101,7 +102,7 @@ class HogApp:
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Profiles and Tournament Edition v{VERSION}")
+        root.title(f"Hog | Showcase Edition v{VERSION}")
         height = max(720, min(820, root.winfo_screenheight() - 70))
         root.geometry(f"1160x{height}")
         root.minsize(1040, 720)
@@ -128,6 +129,7 @@ class HogApp:
         self.button(top, "Rules", self.show_rules, kind="secondary").pack(side="right")
         self.button(top, "Home", self.navigate_home, kind="secondary").pack(side="right", padx=8)
         self.button(top, "Settings", self.show_settings, kind="secondary").pack(side="right", padx=(0, 8))
+        self.button(top, "Access", self.show_accessibility, kind="secondary").pack(side="right", padx=(0, 8))
         self.theme_button = self.button(top, "Light mode" if self.preferences.theme == "dark" else "Dark mode",
                                         self.toggle_theme, kind="secondary")
         self.theme_button.pack(side="right", padx=(0, 8))
@@ -142,8 +144,11 @@ class HogApp:
         self.show_home()
 
     def label(self, parent, text, size=11, *, bold=False, fg=None, bg=None, **kwargs):
-        return tk.Label(parent, text=text, font=(self.family, size, "bold" if bold else "normal"),
-                        bg=bg or parent.cget("bg"), fg=fg or self.palette.text, anchor="w", justify="left", **kwargs)
+        display_size = size + 2 if self.preferences.large_text and size <= 13 else size
+        label = tk.Label(parent, text=text, font=(self.family, display_size, "bold" if bold else "normal"),
+                         bg=bg or parent.cget("bg"), fg=fg or self.palette.text, anchor="w", justify="left", **kwargs)
+        label._hog_base_font = (self.family, size, "bold" if bold else "normal")
+        return label
 
     def button(self, parent, text, command, *, kind="primary", **kwargs):
         fill, foreground = (self.palette.accent, self.palette.accent_text) if kind == "primary" else (self.palette.raised, self.palette.text)
@@ -153,6 +158,9 @@ class HogApp:
                          font=(self.family, 10, "bold"), relief="flat", bd=0,
                          padx=18, pady=10, cursor="hand2", highlightthickness=2,
                          highlightbackground=fill, highlightcolor=self.palette.gold, **kwargs)
+        button._hog_base_font = (self.family, 10, "bold")
+        if self.preferences.large_text:
+            button.configure(font=(self.family, 12, "bold"))
         button._hog_kind = kind
         return button
 
@@ -166,6 +174,8 @@ class HogApp:
         self.paused = False
         self._visual_outcomes = ()
         self.screen = screen
+        if self.preferences.large_text:
+            self.root.after_idle(self._resize_text)
         for child in self.body.winfo_children():
             child.destroy()
 
@@ -442,7 +452,8 @@ class HogApp:
         navigation = tk.Frame(self.body, bg=self.palette.bg)
         navigation.pack(fill="x", pady=(0, 10))
         self.label(navigation, "CHOOSE YOUR TABLE", 10, bold=True, fg=self.palette.muted).pack(side="left")
-        for title, command in (("Resume saved", self.resume_saved), ("Tournaments", self.show_tournament),
+        for title, command in (("Tutorial", self.show_tutorial), ("Practice", self.show_practice),
+                               ("Resume saved", self.resume_saved), ("Tournaments", self.show_tournament),
                                ("Player hub", self.show_player_hub)):
             button = self.button(navigation, title, command, kind="secondary")
             button.configure(pady=6, padx=12)
@@ -929,6 +940,287 @@ class HogApp:
             self.analysis_window.destroy()
         self.analysis_window = None
 
+    def _resize_text(self):
+        def resize(widget):
+            if "font" in widget.keys():
+                if not hasattr(widget, "_hog_base_font"):
+                    actual = tkfont.Font(root=self.root, font=widget.cget("font")).actual()
+                    widget._hog_base_font = (actual["family"], actual["size"], actual["weight"])
+                family, size, weight = widget._hog_base_font
+                display_size = size + 2 if self.preferences.large_text and 0 < size <= 13 else size
+                widget.configure(font=(family, display_size, weight))
+            for child in widget.winfo_children():
+                resize(child)
+        resize(self.root)
+
+    def set_large_text(self, enabled):
+        self.preferences = replace(self.preferences, large_text=bool(enabled))
+        self._resize_text()
+        self._persist_preferences()
+
+    def show_accessibility(self):
+        panel = self.analysis_shell("Accessibility")
+        self.analysis_window.geometry("740x650")
+        self.label(panel, "Choose comfortable presentation settings. Game rules stay unchanged.",
+                   11, fg=self.palette.muted, wraplength=670).pack(anchor="w", pady=(0, 18))
+        large = tk.BooleanVar(self.root, self.preferences.large_text)
+        motion = tk.BooleanVar(self.root, not self.preferences.animations)
+        for title, variable, command in (
+                ("Larger label and control text", large, lambda: self.set_large_text(large.get())),
+                ("Reduced motion / immediate dice results", motion, lambda: self.set_animations(not motion.get()))):
+            tk.Checkbutton(panel, text=title, variable=variable, command=command,
+                           bg=self.palette.bg, fg=self.palette.text,
+                           selectcolor=self.palette.raised, activebackground=self.palette.bg,
+                           activeforeground=self.palette.accent, pady=12, anchor="w").pack(fill="x")
+        self.button(panel, "Use high-contrast theme", lambda: self.set_theme("contrast")).pack(anchor="w", pady=14)
+        self.button(panel, "Mute all game sounds", lambda: self.set_sound(False), kind="secondary").pack(anchor="w")
+        self.label(panel, "Keyboard: Tab moves focus; Enter confirms a human roll.\n"
+                          "0-9 and X choose dice; P pauses; R restarts; H opens advice.\n"
+                          "F1 opens rules; T switches themes; M toggles audio.\n\n"
+                          "Larger text may need a wider window. Settings persist locally.",
+                   11, fg=self.palette.muted, wraplength=670).pack(anchor="w", pady=22)
+
+    def show_tutorial(self):
+        panel = self.analysis_shell("Learn Hog / interactive tutorial")
+        self.analysis_window.geometry("840x660")
+        lessons = tutorial_lessons()
+        self.tutorial_step = 0
+        title = self.label(panel, "", 18, bold=True)
+        title.pack(anchor="w", pady=14)
+        prompt = self.label(panel, "", 13, wraplength=770)
+        prompt.pack(anchor="w", pady=(0, 20))
+        answers = tk.Frame(panel, bg=self.palette.bg)
+        answers.pack(fill="x")
+        feedback = self.label(panel, "Choose an answer to try the real scoring rule.", 12,
+                              wraplength=770, fg=self.palette.accent)
+        feedback.pack(anchor="w", pady=25)
+
+        def next_step():
+            self.tutorial_step += 1
+            draw()
+        next_button = self.button(panel, "Next lesson", next_step, state="disabled")
+        next_button.pack(anchor="w")
+
+        def draw():
+            for child in answers.winfo_children():
+                child.destroy()
+            if self.tutorial_step == len(lessons):
+                title.configure(text="Tutorial complete. Ready to play?")
+                prompt.configure(text="You practiced dice totals, Sow Sad, Boar Brawl and Sus Fuss.")
+                feedback.configure(text="Tutorial exercises do not change profiles or match statistics.")
+                next_button.configure(text="Set up a match", state="normal", command=lambda: (self.close_analysis(), self.show_setup(1)))
+                return
+            name, question, options, expected, explanation = lessons[self.tutorial_step]
+            title.configure(text=f"{self.tutorial_step + 1}/{len(lessons)} / {name}")
+            prompt.configure(text=question)
+            feedback.configure(text="Choose an answer to try the real scoring rule.")
+            next_button.configure(state="disabled")
+
+            def answer(choice):
+                if choice == expected:
+                    feedback.configure(text="Correct. " + explanation)
+                    next_button.configure(state="normal")
+                else:
+                    feedback.configure(text="Try again. Think about the special rule in this question.")
+            self.tutorial_answer_buttons = []
+            for choice in options:
+                button = self.button(answers, choice, lambda value=choice: answer(value), kind="secondary")
+                button.pack(side="left", padx=(0, 14))
+                self.tutorial_answer_buttons.append(button)
+        self.tutorial_next_button = next_button
+        draw()
+
+    def show_practice(self):
+        panel = self.analysis_shell("Practice table")
+        self.analysis_window.geometry("940x760")
+        self.label(panel, "Custom rules are for practice only: no history, saves, profile statistics or optimal-policy advice.",
+                   10, fg=self.palette.muted, wraplength=880).pack(anchor="w", pady=(0, 12))
+        controls = tk.Frame(panel, bg=self.palette.bg)
+        controls.pack(fill="x")
+        fields = []
+        for title, initial, width in (("Goal", "50", 5), ("Your start", "0", 5),
+                                      ("Computer start", "0", 5), ("Seed", "42", 8)):
+            self.label(controls, title, 9).pack(side="left")
+            value = tk.StringVar(self.root, initial)
+            tk.Entry(controls, textvariable=value, width=width).pack(side="left", padx=6)
+            fields.append(value)
+        sus = tk.BooleanVar(self.root, True)
+        tk.Checkbutton(panel, text="Enable Sus Fuss (Sow Sad and Boar Brawl always apply)", variable=sus,
+                       bg=self.palette.bg, fg=self.palette.text, selectcolor=self.palette.raised,
+                       activebackground=self.palette.bg).pack(anchor="w", pady=12)
+        opponent = tk.StringVar(self.root, "always5")
+        ttk.Combobox(panel, textvariable=opponent, values=("always5", "always6", "catch-up"),
+                     state="readonly", style="Hog.TCombobox").pack(anchor="w")
+        scoreboard = self.label(panel, "Set a goal from 20 to 200, then start practice.", 17, bold=True)
+        scoreboard.pack(anchor="w", pady=18)
+        canvas = tk.Canvas(panel, bg=self.palette.panel, height=100, highlightthickness=0)
+        canvas.pack(fill="x")
+        status = self.label(panel, "", 11, wraplength=880, fg=self.palette.accent)
+        status.pack(anchor="w", pady=12)
+        selection = tk.IntVar(self.root, 5)
+        dice_row = tk.Frame(panel, bg=self.palette.bg)
+        dice_row.pack(fill="x")
+        for count in range(11):
+            tk.Radiobutton(dice_row, text=str(count), variable=selection, value=count,
+                           bg=self.palette.bg, fg=self.palette.text, selectcolor=self.palette.raised,
+                           activebackground=self.palette.bg).pack(side="left", padx=4)
+        self.practice_session = None
+
+        def redraw(event=None):
+            session = self.practice_session
+            scoreboard.configure(text=f"You {session.scores[0]} : {session.scores[1]} Computer / goal {session.goal}")
+            canvas.delete("all")
+            if event:
+                if event.outcomes:
+                    for index, value in enumerate(event.outcomes):
+                        draw_die(canvas, 18 + index * 67, 18, 52, value, accent=value == 1, palette=self.palette)
+                else:
+                    canvas.create_text(20, 45, text=f"Zero dice / Boar Brawl +{event.turn_points}",
+                                       anchor="w", fill=self.palette.text, font=(self.family, 14))
+                status.configure(text=f"{'You' if event.player == 0 else 'Computer'} earned {event.turn_points} points"
+                                       f" and {event.bonus} Sus Fuss bonus.")
+            if session.finished:
+                play_button.configure(state="disabled")
+                status.configure(text="Practice complete. " + ("You win." if session.winner == 0 else "Computer wins."))
+            else:
+                play_button.configure(state="normal" if session.current_player == 0 else "disabled")
+
+        def cpu():
+            self.analysis_pending = None
+            if self.analysis_window is None or self.practice_session is None or self.practice_session.finished:
+                return
+            session = self.practice_session
+            count = STRATEGIES[self.practice_rules.opponent][0](session.scores[1], session.scores[0])
+            redraw(session.advance(count))
+
+        def move():
+            session = self.practice_session
+            if session is None or session.finished or session.current_player != 0:
+                return
+            redraw(session.advance(selection.get()))
+            if not session.finished:
+                self.analysis_pending = self.root.after(450, cpu)
+
+        def start():
+            try:
+                goal, own, other = (int(field.get()) for field in fields[:3])
+                seed = fields[3].get().strip()
+                rules = PracticeRules(goal, sus.get(), (own, other), int(seed) if seed else None, opponent.get())
+            except ValueError as error:
+                status.configure(text=f"Check practice settings: {error}")
+                return
+            if self.analysis_pending is not None:
+                self.root.after_cancel(self.analysis_pending)
+                self.analysis_pending = None
+            self.practice_rules = rules
+            self.practice_session = rules.create_session()
+            canvas.delete("all")
+            status.configure(text="Your turn. Practice uses immediate results.")
+            redraw()
+        actions = tk.Frame(panel, bg=self.palette.bg)
+        actions.pack(anchor="w", pady=16)
+        self.practice_start_button = self.button(actions, "Start / reset practice", start)
+        self.practice_start_button.pack(side="left")
+        play_button = self.button(actions, "Play selected dice", move, kind="secondary", state="disabled")
+        play_button.pack(side="left", padx=12)
+        self.practice_play_button = play_button
+
+    def show_replay(self):
+        panel = self.analysis_shell("Match replay viewer")
+        self.analysis_window.geometry("940x760")
+        records = self.store.history()[:100]
+        if not records:
+            self.label(panel, "Complete a standard desktop match to create a replay.", 12).pack(anchor="w")
+            return
+        labels = []
+        for row in records:
+            record = json.loads(row["payload"])
+            labels.append(f"{row['finished_at']} / {' vs '.join(record['config']['names'])} / {row['id'][:6]}")
+        selected = tk.StringVar(self.root, labels[0])
+        combo = ttk.Combobox(panel, textvariable=selected, values=labels, state="readonly", style="Hog.TCombobox")
+        combo.pack(fill="x", pady=(0, 18))
+        heading = self.label(panel, "", 19, bold=True)
+        heading.pack(anchor="w", pady=12)
+        canvas = tk.Canvas(panel, height=150, bg=self.palette.panel, highlightthickness=0)
+        canvas.pack(fill="x")
+        details = self.label(panel, "", 12, wraplength=880, fg=self.palette.accent)
+        details.pack(anchor="w", pady=18)
+        self.replay_index = 0
+        self.replay_playing = False
+        self.replay_states = ()
+
+        def stop():
+            self.replay_playing = False
+            if self.analysis_pending is not None:
+                self.root.after_cancel(self.analysis_pending)
+                self.analysis_pending = None
+
+        def draw():
+            state = self.replay_states[self.replay_index]
+            event = state["event"]
+            names = self.replay_record["config"]["names"]
+            heading.configure(text=f"{names[0]} {state['scores'][0]} : {state['scores'][1]} {names[1]}")
+            canvas.delete("all")
+            if event:
+                for index, value in enumerate(event.outcomes):
+                    draw_die(canvas, 20 + index * 67, 30, 52, value, accent=value == 1, palette=self.palette)
+                if not event.outcomes:
+                    canvas.create_text(25, 60, text="Zero dice / Boar Brawl", anchor="w",
+                                       fill=self.palette.text, font=(self.family, 15))
+                details.configure(text=f"Turn {event.number}/{len(self.replay_states)-1} / {names[event.player]} / "
+                    f"{event.num_rolls} dice / +{event.turn_points} points / +{event.bonus} bonus / total {event.score_after}")
+            else:
+                details.configure(text="Before turn 1 / both players start at zero.")
+            self.replay_step_label.configure(text=f"Position {self.replay_index} of {len(self.replay_states)-1}")
+
+        def advance(delta):
+            if not self.replay_states:
+                return
+            stop()
+            self.replay_index = max(0, min(len(self.replay_states)-1, self.replay_index + delta))
+            draw()
+
+        def tick():
+            self.analysis_pending = None
+            if not self.replay_playing or self.analysis_window is None:
+                return
+            if self.replay_index >= len(self.replay_states)-1:
+                stop()
+                return
+            self.replay_index += 1
+            draw()
+            self.analysis_pending = self.root.after(800, tick)
+
+        def play_pause():
+            if self.replay_playing:
+                stop()
+            else:
+                self.replay_playing = True
+                tick()
+
+        def load(_event=None):
+            stop()
+            try:
+                record = json.loads(records[labels.index(selected.get())]["payload"])
+                states = replay_states(record)
+            except (ValueError, TypeError) as error:
+                details.configure(text=f"Replay unavailable: {error}")
+                return
+            self.replay_record, self.replay_states, self.replay_index = record, states, 0
+            draw()
+        actions = tk.Frame(panel, bg=self.palette.bg)
+        actions.pack(anchor="w", pady=10)
+        for text, command in (("First", lambda: advance(-999)), ("Previous", lambda: advance(-1)),
+                              ("Play / pause", play_pause), ("Next", lambda: advance(1)), ("Last", lambda: advance(999))):
+            self.button(actions, text, command, kind="secondary").pack(side="left", padx=(0, 8))
+        self.replay_step_label = self.label(panel, "", 10, fg=self.palette.muted)
+        self.replay_step_label.pack(anchor="w", pady=12)
+        self.label(panel, "Read-only reconstruction: no new dice, profile updates, or match records.",
+                   10, fg=self.palette.muted).pack(anchor="w")
+        self.replay_advance = advance
+        combo.bind("<<ComboboxSelected>>", load)
+        load()
+
     def _profile_selected(self, seat):
         selected = self.profile_vars[seat].get()
         if self.profile_lookup.get(selected) is not None:
@@ -987,6 +1279,7 @@ class HogApp:
                 self.hub_status.configure(text=str(error))
         self.button(create, "Create profile", add).pack(side="left", padx=10)
         self.button(create, "Export history CSV", self._export_history, kind="secondary").pack(side="right")
+        self.button(create, "Replay viewer", self.show_replay, kind="secondary").pack(side="right", padx=8)
         notebook = ttk.Notebook(panel)
         notebook.pack(fill="both", expand=True)
         self.hub_tabs = {}
@@ -1145,6 +1438,8 @@ class HogApp:
         inside = tk.Frame(window, bg=self.palette.bg)
         inside.pack(fill="both", expand=True, padx=26, pady=22)
         self.label(inside, title, 23, bold=True).pack(anchor="w", pady=(0, 12))
+        if self.preferences.large_text:
+            self.root.after_idle(self._resize_text)
         return inside
 
     def poll_analysis(self, future, callback):
@@ -1267,11 +1562,12 @@ class HogApp:
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Animated Game Edition")
+    parser = argparse.ArgumentParser(description="Hog Showcase Edition")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--theme", choices=tuple(PALETTES), help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")
     parser.add_argument("--mute", action="store_true", help="start with sound disabled")
+    parser.add_argument("--smoke-test", action="store_true", help="briefly open a window using temporary data, then exit")
     args = parser.parse_args(argv)
     if tk is None:
         print("Tkinter is not installed in this Python environment.\n"
@@ -1284,16 +1580,21 @@ def main(argv=None):
               "Use a local graphical desktop, or play with: python hog_ui.py", file=sys.stderr)
         return 1
     path = default_preferences_path()
-    preferences = load_preferences(path)
+    preferences = Preferences() if args.smoke_test else load_preferences(path)
     if args.theme:
         preferences = replace(preferences, theme=args.theme)
     if args.no_animation:
         preferences = replace(preferences, animations=False)
     if args.mute:
         preferences = replace(preferences, sound=False)
-    HogApp(root, preferences=preferences, preferences_path=path, data_path=path.parent / "hog.sqlite3")
+    app = HogApp(root, preferences=preferences, preferences_path=None if args.smoke_test else path,
+                 data_path=None if args.smoke_test else path.parent / "hog.sqlite3")
+    errors = []
+    if args.smoke_test:
+        root.report_callback_exception = lambda kind, error, trace: errors.append(error)
+        root.after(1200, app.close)
     root.mainloop()
-    return 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":

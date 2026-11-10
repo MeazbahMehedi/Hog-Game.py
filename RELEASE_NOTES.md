@@ -1,17 +1,15 @@
 # GitHub Release Details
 
-**Tag:** `v2.2.0`
+**Tag:** `v3.0.0`
 
-**Title:** `v2.2.0 - Profiles and Tournament Edition`
+**Title:** `v3.0.0 - Showcase Edition`
 
 ## Description
 
-Hog now includes local player profiles, persistent statistics, six achievement milestones, match history, a local leaderboard, manual save/resume, and seeded computer tournaments with charts and CSV export.
+The final planned Hog upgrade adds an interactive tutorial, read-only match replay navigation, configurable practice rules, a high-contrast theme, larger text controls, and a tested standalone Linux desktop package.
 
-Saved matches retain the exact future dice sequence, including unseeded games. SQLite transactions and match IDs prevent double-counting results. Guest matches and tournaments do not alter human profile standings.
+All previous rules, computer strategies, move advice, profiles, achievements, saved games, tournaments, themes, animations, sound, and terminal tools remain available. Practice does not alter standard statistics, and replay never rolls new dice or records duplicate matches.
 
-All earlier rules, opponents, move advice, animations, themes, optional audio, and terminal tools remain included. The updated README documents current screenshots, previous versions, controls, local data, and limitations.
+Extract and run `python hog_desktop.py`, or launch the included Linux x86_64 package. The ZIP includes Windows build scripts, but not a Windows executable. Native Windows/macOS execution is not claimed.
 
-Extract and run `python hog_desktop.py`. Requires Python 3.10+, Tkinter, and a graphical desktop; no third-party Python packages are needed to play.
-
-Verified: 110 automated checks and 18 documentation examples. The final showcase edition, v3.0.0, is planned next.
+Verified: 122 automated checks, 18 executable documentation examples, and a real-window native Linux smoke test. Updated screenshots, installation instructions, cumulative changelog, and earlier READMEs document the entire six-release progression.

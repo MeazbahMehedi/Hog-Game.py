@@ -1,4 +1,4 @@
-"""Hog v2.2.0: the retained dependency-free terminal interface.
+"""Hog v3.0.0: the retained dependency-free terminal interface.
 
 Run without flags for the menu, or keep using the original -n 0/1/2 modes.
 """

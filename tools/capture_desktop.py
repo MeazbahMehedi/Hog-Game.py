@@ -29,7 +29,7 @@ def capture(root, name, window=None):
     target.winfo_pointerxy()
     x, y = target.winfo_rootx(), target.winfo_rooty()
     box = (x, y, x + target.winfo_width(), y + target.winfo_height())
-    path = ROOT / "docs" / "screenshots" / f"v2.2.0-{name}.png"
+    path = ROOT / "docs" / "screenshots" / f"v3.0.0-{name}.png"
     ImageGrab.grab(bbox=box).save(path)
     print(path.name)
 
@@ -37,14 +37,14 @@ def capture(root, name, window=None):
 def main():
     # Each scene gets a fresh real window, avoiding stale backing pixels on
     # window-manager-free virtual displays. All match scores come from play.
-    for scene in ("home", "setup", "game", "free-points", "winner", "rules", "light", "settings", "paused", "advisor", "comparison", "hub", "history", "leaderboard", "tournament", "resume", "profile-setup"):
+    for scene in ("home", "setup", "game", "free-points", "winner", "rules", "light", "settings", "paused", "advisor", "comparison", "hub", "history", "leaderboard", "tournament", "resume", "profile-setup", "tutorial", "practice", "accessibility", "replay"):
         root = tk.Tk()
         errors = []
         root.report_callback_exception = lambda kind, error, traceback: errors.append(error)
         app = HogApp(root, cpu_delay=600000, preferences=Preferences(animations=False))
         root.geometry("1160x820+20+20")
         try:
-            if scene in ("hub", "history", "leaderboard", "profile-setup"):
+            if scene in ("hub", "history", "leaderboard", "profile-setup", "replay"):
                 identifier = app.store.create_profile("Meazbah")
                 for seed in (42, 43, 44):
                     config = MatchConfig(1, ("Meazbah", "Computer"), ("adaptive", "hard"), seed, (identifier, None))
@@ -55,7 +55,10 @@ def main():
                         count = STRATEGIES[config.strategies[who]][0](app.session.scores[who], app.session.scores[1 - who])
                         app.complete_turn(count)
                     app.cancel_pending()
-                if scene == "profile-setup":
+                if scene == "replay":
+                    app.show_replay()
+                    app.replay_advance(8)
+                elif scene == "profile-setup":
                     app.show_setup(1)
                     app.profile_vars[0].set("Meazbah")
                     app._profile_selected(0)
@@ -64,6 +67,20 @@ def main():
                     if scene in ("history", "leaderboard"):
                         page = app.hub_tabs["Match history" if scene == "history" else "Leaderboard"]
                         page.master.select(page)
+            elif scene == "tutorial":
+                app.show_tutorial()
+                app.tutorial_answer_buttons[0].invoke()
+                app.tutorial_next_button.invoke()
+            elif scene == "practice":
+                app.show_practice()
+                app.practice_start_button.invoke()
+                app.practice_play_button.invoke()
+                if app.analysis_pending is not None:
+                    root.after_cancel(app.analysis_pending)
+                    app.analysis_pending = None
+            elif scene == "accessibility":
+                app.show_accessibility()
+                app.set_theme("contrast")
             elif scene == "tournament":
                 app.show_tournament()
                 app.tournament_run_button.invoke()
@@ -118,7 +135,7 @@ def main():
                         root.quit()
                 root.after(30, wait_ready)
                 root.mainloop()
-            capture(root, scene, app.analysis_window if scene in ("advisor", "comparison", "hub", "history", "leaderboard", "tournament") else  app.rules_window if scene == "rules" else app.settings_window if scene == "settings" else None)
+            capture(root, scene, app.analysis_window if scene in ("advisor", "comparison", "hub", "history", "leaderboard", "tournament", "tutorial", "practice", "accessibility", "replay") else  app.rules_window if scene == "rules" else app.settings_window if scene == "settings" else None)
             if errors:
                 raise errors[0]
         finally:

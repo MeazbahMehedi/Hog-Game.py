@@ -1,12 +1,81 @@
 # The Game of Hog
 
-**v2.2.0 · Profiles and Tournament Edition · Python 3.10+ / Tkinter**
+**v3.0.0 · Showcase Edition · Python 3.10+ / Tkinter**
 
-This release adds local player profiles, persistent statistics, achievements, match history, exact save/resume, leaderboards, and round-robin computer tournaments. All previous game modes, opponents, move advice, animations, themes, sound, and terminal tools remain included.
+The sixth and final planned upgrade brings together the complete Hog desktop project: interactive learning, practice rules, match replays, accessibility controls, strong opponents, profiles, tournaments, and a tested standalone Linux package. All prior Python source, terminal modes, scoring rules, and documentation remain included.
 
-![Profiles and Tournament Edition](docs/screenshots/v2.2.0-home.png)
+![Showcase Edition](docs/screenshots/v3.0.0-home.png)
 
-## What's New in v2.2.0
+## What's New in v3.0.0
+
+- **Interactive tutorial:** four scored exercises covering dice totals, Sow Sad, Boar Brawl, and Sus Fuss, with immediate feedback.
+- **Match replay viewer:** select a completed desktop match, step forward/backward, jump to the beginning/end, or play/pause recorded turns.
+- **Configurable practice:** choose a 20-200 point goal, starting scores, seed, opponent, and whether Sus Fuss applies.
+- **Accessibility:** a high-contrast theme, larger label/control text, reduced-motion controls, mute, and keyboard guidance.
+- **Native package:** a tested Linux x86_64 one-folder build, plus pinned packaging requirements and Windows/native build scripts.
+- **Complete release history:** all six upgrades are documented, with previous READMEs and screenshots preserved.
+- **122 automated checks**, 18 executable documentation examples, and a native-window launch check.
+
+### Interactive Tutorial
+
+From Home, click **Tutorial**. Choose answers to four questions. Incorrect answers receive feedback; the next lesson unlocks after the correct answer. Answers come from the same scoring functions used by the game. Tutorial exercises do not alter profiles or history.
+
+![Interactive tutorial](docs/screenshots/v3.0.0-tutorial.png)
+
+### Read-Only Match Replays
+
+Open **Player hub > Replay viewer**, then select one of the latest 100 completed desktop matches. Use **First**, **Previous**, **Play / pause**, **Next**, and **Last** to inspect the match. Every displayed score pair is reconstructed and validated from recorded outcomes, rather than generated from new rolls. Turn points, bonus points, dice choices, and final totals remain visible.
+
+Replay viewing never adds history entries or changes statistics. Earlier v2.2.0 completed desktop records are supported; this viewer is for standard 100-point matches, not practice sessions.
+
+![Replay viewer](docs/screenshots/v3.0.0-replay.png)
+
+### Configurable Practice Table
+
+From Home, click **Practice**. Choose a goal from 20 to 200, starting scores below that goal, an optional integer seed, and an opponent: `always5`, `always6`, or `catch-up`. Toggle Sus Fuss on/off, then start practice. Sow Sad and Boar Brawl always apply. Human and computer turns use immediate results so you can focus on the rule effects.
+
+Practice is temporary and deliberately isolated: no saved match, profile ranking, achievements, history entry, or optimal-policy advice. The Hard policy assumes standard rules and goal 100, so it is not offered for custom practice.
+
+![Practice mode](docs/screenshots/v3.0.0-practice.png)
+
+### Accessibility Controls
+
+Click **Access** in the header. Enable larger label/control text, reduced motion, high contrast, or mute. These settings persist with existing preferences and preserve the current match. High contrast is also available in the Settings theme selector. Larger text may need a wider window; canvas diagrams retain their own readable labels.
+
+Buttons retain keyboard focus indicators. Standard gameplay shortcuts remain listed below. This release does not claim complete screen-reader certification.
+
+![Accessibility](docs/screenshots/v3.0.0-accessibility.png)
+
+### Run Without a Separate Python Installation on Linux
+
+A tested one-folder Linux x86_64 build is included. Keep the entire `Hog` folder together:
+
+```bash
+chmod +x native/linux-x86_64/Hog/Hog
+./native/linux-x86_64/Hog/Hog
+```
+
+It was built and checked on Linux with glibc 2.39, Python 3.12.3, and Tk 8.6. It requires a graphical desktop and system graphics libraries. Compatibility with older glibc versions is not claimed.
+
+For Windows, use the Python source command below, or run **`build-windows.bat` on Windows** to produce `dist/Hog/Hog.exe`. A Windows executable is not included, and Windows execution has not been tested here. Native executables must be built on their target operating system.
+
+Optional build commands:
+
+```bash
+python -m pip install -r requirements-build.txt
+python tools/build_desktop.py
+```
+
+The included native build used PyInstaller 6.22.3. This dependency is only for packaging, not source play. See [native/README.md](native/README.md) and [INSTALL.md](INSTALL.md).
+
+Installation smoke check, with temporary in-memory data:
+
+```bash
+python hog_desktop.py --smoke-test
+./native/linux-x86_64/Hog/Hog --smoke-test
+```
+
+## Retained from v2.2.0
 
 - Local profiles with case-insensitive unique names; no online account or password.
 - Attach a profile to each human seat in Match setup, or play as a guest.
@@ -197,8 +266,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v1.2.0 | First graphical desktop interface, journal, winner screen, incremental engine, and 55 checks. |
 | v2.0.0 | Animation, themes, optional sound, pause/restart, shortcuts, settings persistence, and 82 checks. |
 | v2.1.0 | Easy/Medium/Hard opponents, exact win-probability policy, optional advice, visual comparisons, and 94 checks. |
-| **v2.2.0** | Profiles, statistics, six achievements, history, exact save/resume, local leaderboard, tournaments, CSV export, and 110 checks. |
-| v3.0.0 | Planned: final showcase edition. |
+| v2.2.0 | Profiles, statistics, six achievements, history, exact save/resume, local leaderboard, tournaments, CSV export, and 110 checks. |
+| **v3.0.0** | Interactive tutorial, replay navigation, practice settings, accessibility, native Linux build, packaging scripts, and 122 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -210,7 +279,9 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous smart opponents](docs/screenshots/v2.1.0-home.png)
 
-Full earlier documentation: [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+![Previous profiles edition](docs/screenshots/v2.2.0-home.png)
+
+Full earlier documentation: [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
@@ -219,6 +290,9 @@ Full earlier documentation: [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/hist
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
+| `hog_showcase.py` | Tutorial exercises, practice rules, validated replay reconstruction |
+| `native/` | Tested Linux one-folder package and native runtime notices |
+| `tools/build_desktop.py` | Reproducible native packaging command |
 | `hog_storage.py` | SQLite profiles, statistics, history, save validation, and exports |
 | `hog_tournament.py` | Seeded equal-seat round robins and tournament CSV export |
 | `hog_desktop.py` | Tk views, controls, animation and cancellable timers |
@@ -239,12 +313,20 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-110 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
+122 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, cloud accounts, match replay navigation, or packaged executables. These remain later-release work.
+This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. The six planned upgrades are complete; future changes are outside this release plan.
 
 ## Credits
 
 Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**. Based on the supplied Python Programming Project 1 Hog assignment and starter files. Original `dice.py` and `ucb.py` are retained; `ucb.py` credits UC Berkeley project utilities. This expanded GitHub edition goes beyond the coursework restriction to edit only `hog.py`.
+
+## Architecture and Development Takeaways
+
+The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets or SQLite records.
+
+Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
+
+The original coursework grew into six separately packaged upgrades, each adding a usable feature layer while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

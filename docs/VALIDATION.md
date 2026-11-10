@@ -1,11 +1,11 @@
-# v2.2.0 Validation
+# v3.0.0 Validation
 
-2026-10-29. Linux / Python 3.12.14 / Tk 9.0 with a virtual display.
+2026-10-29. Source suite: Linux / Python 3.12.14 / Tk 9.0 with a virtual display.
 
-110 automated checks pass with a display. All 18 doctest examples pass. Without a display, GUI classes skip.
+122 automated checks passed. All 18 doctest examples pass. New tests cover actual tutorial answers, practice goals/rules/validation/seeds, replay score reconstruction and tamper rejection, read-only behavior, tutorial interaction, practice isolation, replay navigation without statistics changes, and live-match accessibility changes.
 
-New checks cover profile persistence and uniqueness, invalid names, exact seeded/unseeded resumption, scoring/state validation, match-ID deduplication, clearing the matching save, guest isolation, achievement derivation, CSV escaping, computer/profile restrictions, round-robin seat balance, deterministic results, tournament persistence, profile setup controls, paused resumption, and real-window tournament rendering/reopening.
+Native build: Linux x86_64, Python 3.12.3, Tk 8.6, PyInstaller 6.22.3, glibc 2.39. The packaged executable passed `--version` and a real-window `--smoke-test` using in-memory data. No Windows/macOS executable or native execution was verified. Optional audio hardware limitations remain.
 
-Current screenshots capture real Tk windows on Linux / Tk 8.6. Demo history comes from three genuine seeded matches with profile choices; it is not included as a user database in the ZIP. Tournament captures come from a real 200-game round robin.
+Current screenshots capture real Tk windows on Linux / Tk 8.6. Tutorial and practice screenshots come from actual controls and rule calculations. Replay screenshots reconstruct genuine previously completed matches. No demo database is included.
 
-Native Windows/macOS execution and physical audio hardware are not claimed. Existing engine and AI assumptions remain documented in the README. Persistence is desktop-only and local; there is one manual save slot, no cloud sync, and no profile rename/delete UI.
+The existing SQLite schema remains at version 1, and previous v2.2.0 standard records/saves remain compatible. Larger-text preferences default off for older settings files. Custom practice sessions are intentionally transient and do not use the 100-point optimal-policy advisor.

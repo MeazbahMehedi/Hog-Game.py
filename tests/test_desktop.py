@@ -207,6 +207,53 @@ class DesktopTests(unittest.TestCase):
         self.app.show_tournament()
         self.assertEqual(self.app.tournament_result["matches"], result["matches"])
 
+    def test_interactive_tutorial_requires_correct_answers(self):
+        self.app.show_tutorial()
+        expected = ("15", "1", "9", "23")
+        for answer in expected:
+            self.assertEqual(str(self.app.tutorial_next_button.cget("state")), "disabled")
+            button = next(button for button in self.app.tutorial_answer_buttons if button.cget("text") == answer)
+            button.invoke()
+            self.app.tutorial_next_button.invoke()
+        self.assertEqual(self.app.tutorial_step, 4)
+        self.assertEqual(self.app.store.history(), [])
+
+    def test_practice_does_not_write_profile_history(self):
+        self.app.show_practice()
+        self.app.practice_start_button.invoke()
+        self.app.practice_play_button.invoke()
+        self.root.after(550, self.root.quit)
+        self.root.mainloop()
+        self.assertEqual(self.app.practice_session.turn_number, 3)
+        self.assertEqual(self.app.store.history(), [])
+
+    def test_replay_navigation_leaves_statistics_unchanged(self):
+        self.start(mode=2)
+        while not self.app.session.finished:
+            self.app.select_count(0)
+            self.app.roll_human()
+        self.app.cancel_pending()
+        before = self.app.store.history()
+        self.app.show_replay()
+        self.app.replay_advance(999)
+        self.assertEqual(self.app.replay_index, len(self.app.replay_states)-1)
+        self.app.replay_advance(-999)
+        self.assertEqual(self.app.replay_index, 0)
+        self.assertEqual(self.app.store.history(), before)
+
+    def test_accessibility_changes_preserve_live_match(self):
+        self.start(mode=1)
+        original = self.app.session
+        self.app.show_accessibility()
+        self.app.set_large_text(True)
+        self.app.set_theme("contrast")
+        self.root.update()
+        self.assertIs(self.app.session, original)
+        self.assertTrue(self.app.preferences.large_text)
+        self.app.set_theme("dark")
+        self.app.set_large_text(False)
+        self.assertEqual(self.app.body.cget("bg"), self.app.palette.bg)
+
 
 class DesktopLauncherTests(unittest.TestCase):
     def test_version_flag_does_not_need_display(self):
@@ -214,7 +261,7 @@ class DesktopLauncherTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "hog_desktop.py", "--version"],
                                 cwd=root, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "2.2.0")
+        self.assertEqual(result.stdout.strip(), "3.0.0")
 
 
 if __name__ == "__main__":

@@ -34,6 +34,9 @@ PALETTES = {
     "light": Palette("#f3f6f8", "#ffffff", "#e6edf1", "#cedae1", "#152c36",
                      "#536976", "#147758", "#ffffff", "#92540a", "#b32e43",
                      "#86979f", "#f4f8fa", "#172a32", "#d3dfe5", "#deeee7"),
+    "contrast": Palette("#000001", "#101011", "#262627", "#eeeeed", "#ffffff",
+                        "#dededf", "#ffdf00", "#000000", "#71e4ff", "#ffb0ba",
+                        "#b8b8b9", "#fffffe", "#010101", "#303031", "#242425"),
 }
 
 PACE_DELAYS = {"relaxed": 1200, "normal": 700, "fast": 220}
@@ -45,11 +48,12 @@ class Preferences:
     animations: bool = True
     sound: bool = False
     pace: str = "normal"
+    large_text: bool = False
 
     def __post_init__(self):
         if self.theme not in PALETTES or self.pace not in PACE_DELAYS:
             raise ValueError("Unknown theme or computer pace.")
-        if type(self.animations) is not bool or type(self.sound) is not bool:
+        if type(self.animations) is not bool or type(self.sound) is not bool or type(self.large_text) is not bool:
             raise ValueError("Animation and sound settings must be true or false.")
 
 
@@ -69,7 +73,7 @@ def load_preferences(path):
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             return Preferences()
-        keys = ("theme", "animations", "sound", "pace")
+        keys = ("theme", "animations", "sound", "pace", "large_text")
         return Preferences(**{key: data[key] for key in keys if key in data})
     except (OSError, ValueError, TypeError):
         return Preferences()
