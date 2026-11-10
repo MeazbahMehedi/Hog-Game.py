@@ -2,6 +2,16 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v2.2.0 - Profiles and Tournament Edition - 2026-10-29
+
+- Added local profiles, human-seat assignment, persistent statistics, six achievements, and leaderboard.
+- Added deduplicated desktop match history and CSV export with formula-prefix escaping.
+- Added a manual save slot with validated JSON turn data and exact dice-generator state.
+- Resume starts paused; an unfinished visual roll returns to the completed-turn boundary.
+- Added seeded equal-seat computer round robins, charts, persisted results, and CSV export.
+- SQLite transactions prevent duplicate statistics; guest and tournament records stay separate from profile totals.
+- Added 16 checks, bringing the full suite to 110; preserved earlier documentation and screenshots.
+
 ## v2.1.0 - Smart Opponent Edition - 2026-10-29
 
 - Added Easy (five dice), Medium (expected-gain), and Hard (optimal-policy) opponents.
@@ -108,7 +118,6 @@ The uploaded coursework solution is labeled v1.0.0 for project history.
 
 ## Planned After Approval
 
-- v2.2.0: profiles, history, and tournaments.
 - v3.0.0: final showcase edition.
 
 These versions are a roadmap and are not part of the v1.2.0 package.

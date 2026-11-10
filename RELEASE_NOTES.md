@@ -1,17 +1,17 @@
 # GitHub Release Details
 
-**Tag:** `v2.1.0`
+**Tag:** `v2.2.0`
 
-**Title:** `v2.1.0 - Smart Opponent Edition`
+**Title:** `v2.2.0 - Profiles and Tournament Edition`
 
 ## Description
 
-Hog gains Easy, Medium, and Hard opponents, an optional move advisor with explanations, and a visual strategy comparison screen.
+Hog now includes local player profiles, persistent statistics, six achievement milestones, match history, a local leaderboard, manual save/resume, and seeded computer tournaments with charts and CSV export.
 
-Hard uses exact win-probability calculations for fair six-sided Hog. The advisor compares every legal move, while the comparison lab runs real matches in both starting positions and reports uncertainty intervals. Original strategies and all v2.0.0 presentation features remain.
+Saved matches retain the exact future dice sequence, including unseeded games. SQLite transactions and match IDs prevent double-counting results. Guest matches and tournaments do not alter human profile standings.
 
-Extract and run `python hog_desktop.py`. Requires Python 3.10+, Tkinter, and a desktop display. No third-party Python packages are needed to play.
+All earlier rules, opponents, move advice, animations, themes, optional audio, and terminal tools remain included. The updated README documents current screenshots, previous versions, controls, local data, and limitations.
 
-Includes updated screenshots, cumulative README and changelog, previous-release documentation, and measured benchmark data. Verified: 94 automated checks and 18 documentation examples.
+Extract and run `python hog_desktop.py`. Requires Python 3.10+, Tkinter, and a graphical desktop; no third-party Python packages are needed to play.
 
-Profiles, saved progress, and tournaments are planned for v2.2.0.
+Verified: 110 automated checks and 18 documentation examples. The final showcase edition, v3.0.0, is planned next.

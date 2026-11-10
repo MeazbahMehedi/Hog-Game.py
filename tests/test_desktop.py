@@ -169,6 +169,44 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(str(self.app.comparison_run_button.cget("state")), "normal")
         self.app.close_analysis()
 
+    def test_profile_setup_assigns_human_identity(self):
+        identifier = self.app.store.create_profile("Alice")
+        self.app.show_setup(1)
+        self.app.profile_vars[0].set("Alice")
+        self.app._profile_selected(0)
+        self.app._begin_from_setup()
+        self.assertEqual(self.app.config.profile_ids, (identifier, None))
+        self.assertEqual(self.app.config.names[0], "Alice")
+
+    def test_save_resume_preserves_turns_and_starts_paused(self):
+        self.start(mode=1)
+        self.app.roll_human()
+        before = tuple(self.app.events)
+        scores = self.app.session.scores
+        self.app.save_current()
+        self.assertTrue(self.app.paused)
+        self.app.resume_saved()
+        self.assertEqual(self.app.session.scores, scores)
+        self.assertEqual(tuple(self.app.events), before)
+        self.assertTrue(self.app.paused)
+        self.assertIsNone(self.app.pending)
+
+    def test_player_hub_and_tournament_results_persist(self):
+        from hog_tournament import run_tournament
+        self.app.store.create_profile("Alice")
+        self.app.show_player_hub()
+        self.assertIn("Leaderboard", self.app.hub_tabs)
+        self.app.show_tournament()
+        result = run_tournament(("always5", "hard"), 1, 42)
+        with patch("hog_desktop.run_tournament", return_value=result):
+            self.app.tournament_run_button.invoke()
+            self.root.after(300, self.root.quit)
+            self.root.mainloop()
+        self.assertEqual(len(self.app.store.tournaments()), 1)
+        self.assertTrue(self.app.tournament_chart.find_all())
+        self.app.show_tournament()
+        self.assertEqual(self.app.tournament_result["matches"], result["matches"])
+
 
 class DesktopLauncherTests(unittest.TestCase):
     def test_version_flag_does_not_need_display(self):
@@ -176,7 +214,7 @@ class DesktopLauncherTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "hog_desktop.py", "--version"],
                                 cwd=root, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "2.1.0")
+        self.assertEqual(result.stdout.strip(), "2.2.0")
 
 
 if __name__ == "__main__":

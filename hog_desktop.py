@@ -8,6 +8,9 @@ import argparse
 import sys
 from dataclasses import fields, replace
 import math
+import json
+import sqlite3
+from uuid import uuid4
 from pathlib import Path
 from random import Random
 from concurrent.futures import ThreadPoolExecutor
@@ -15,12 +18,14 @@ from hog_ai import policy, analyze_moves, advice_text, compare_opponents
 
 try:
     import tkinter as tk
-    from tkinter import font as tkfont, messagebox, ttk
+    from tkinter import font as tkfont, messagebox, ttk, filedialog
 except ImportError:
     tk = None
 
 from hog import GOAL, STRATEGIES, VERSION, GameSession, seeded_dice, sus_update
 from hog_match import MatchConfig
+from hog_storage import Store
+from hog_tournament import run_tournament, export_tournament
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
                              load_preferences, save_preferences)
@@ -62,11 +67,18 @@ def draw_die(canvas, x, y, size, value, *, accent=False, palette=None, angle=0):
 class HogApp:
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
-    def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None):
+    def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hog-analysis")
         self.policy_future = self.worker.submit(policy)
         self.analysis_window = None
         self.analysis_pending = None
+        self.storage_error = ""
+        try:
+            self.store = Store(data_path)
+        except (OSError, sqlite3.Error):
+            self.store = Store()
+            self.storage_error = "Persistent data could not be opened. This session uses temporary storage."
+        self.match_id = None
         self.root = root
         self.preferences_path = Path(preferences_path) if preferences_path is not None else None
         self.preferences = preferences or (load_preferences(self.preferences_path)
@@ -89,7 +101,7 @@ class HogApp:
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Animated Game Edition v{VERSION}")
+        root.title(f"Hog | Profiles and Tournament Edition v{VERSION}")
         height = max(720, min(820, root.winfo_screenheight() - 70))
         root.geometry(f"1160x{height}")
         root.minsize(1040, 720)
@@ -167,6 +179,7 @@ class HogApp:
         self.audio.stop()
         self.close_analysis()
         self.worker.shutdown(wait=False, cancel_futures=True)
+        self.store.close()
         self.root.destroy()
 
     def navigate_home(self):
@@ -416,15 +429,24 @@ class HogApp:
         self.label(copy, "A little luck.\nA better decision.", 33, bold=True).pack(anchor="w", pady=(12, 10))
         self.label(copy, "Roll the dice, take the free points, and race to 100.\n"
                         "Three special rules. Plenty of ways to win.", 12, fg=self.palette.muted).pack(anchor="w")
-        self.button(copy, "Start a match  >", lambda: self.show_setup(1)).pack(anchor="w", pady=(22, 0))
-        self.button(copy, "Strategy comparison", self.show_comparison, kind="secondary").pack(anchor="w", pady=(10, 0))
+        actions = tk.Frame(copy, bg=self.palette.panel)
+        actions.pack(anchor="w", pady=(20, 0))
+        self.button(actions, "Start a match  >", lambda: self.show_setup(1)).pack(side="left")
+        self.button(actions, "Compare", self.show_comparison, kind="secondary").pack(side="left", padx=10)
         art = tk.Canvas(hero, width=305, height=284, bg=self.palette.panel, highlightthickness=0)
         art.pack(side="right", padx=(0, 24), pady=20)
         art.create_oval(25, 12, 290, 277, fill=self.palette.hero, outline="")
         draw_die(art, 47, 51, 112, 5, palette=self.palette)
         draw_die(art, 165, 128, 96, 3, palette=self.palette)
         art.create_text(155, 257, text="THE RACE TO 100", font=(self.family, 10, "bold"), fill=self.palette.accent)
-        self.label(self.body, "CHOOSE YOUR TABLE", 10, bold=True, fg=self.palette.muted).pack(anchor="w", pady=(0, 10))
+        navigation = tk.Frame(self.body, bg=self.palette.bg)
+        navigation.pack(fill="x", pady=(0, 10))
+        self.label(navigation, "CHOOSE YOUR TABLE", 10, bold=True, fg=self.palette.muted).pack(side="left")
+        for title, command in (("Resume saved", self.resume_saved), ("Tournaments", self.show_tournament),
+                               ("Player hub", self.show_player_hub)):
+            button = self.button(navigation, title, command, kind="secondary")
+            button.configure(pady=6, padx=12)
+            button.pack(side="right", padx=(8, 0))
         modes = tk.Frame(self.body, bg=self.palette.bg)
         modes.pack(fill="both", expand=True)
         options = [(1, "01  /  SOLO", "You vs computer", "Choose a strategy to challenge.\nYour moves. Your decisions."),
@@ -460,6 +482,11 @@ class HogApp:
         self.strategy_boxes = []
         self.control_labels = []
         self.strategy_hints = []
+        self.profile_vars = []
+        self.profile_boxes = []
+        self.profile_lookup = {"Guest / no profile": None}
+        for profile in self.store.profiles():
+            self.profile_lookup[profile["name"]] = profile["id"]
         initial_names = ("Player 0", "Player 1" if mode == 2 else "Computer")
         if mode == 0:
             initial_names = ("Computer 0", "Computer 1")
@@ -469,11 +496,19 @@ class HogApp:
             card = self.panel(cards)
             card.grid(row=0, column=player, sticky="nsew", padx=(0, 10) if player == 0 else (10, 0))
             inner = tk.Frame(card, bg=self.palette.panel)
-            inner.pack(fill="both", expand=True, padx=25, pady=22)
+            inner.pack(fill="both", expand=True, padx=25, pady=14)
             self.label(inner, f"PLAYER {player}", 9, fg=self.palette.accent if player == 0 else self.palette.gold).pack(anchor="w")
             control = self.label(inner, "", 16, bold=True)
             control.pack(anchor="w", pady=(7, 18))
             self.control_labels.append(control)
+            self.label(inner, "Local profile", 9, fg=self.palette.muted).pack(anchor="w")
+            profile_var = tk.StringVar(self.root, "Guest / no profile")
+            self.profile_vars.append(profile_var)
+            profile_box = ttk.Combobox(inner, textvariable=profile_var, values=tuple(self.profile_lookup),
+                                       state="readonly", style="Hog.TCombobox")
+            profile_box.pack(fill="x", pady=(4, 8))
+            self.profile_boxes.append(profile_box)
+            profile_box.bind("<<ComboboxSelected>>", lambda _event, seat=player: self._profile_selected(seat))
             self.label(inner, "Display name", 10, fg=self.palette.muted).pack(anchor="w", pady=(0, 6))
             name = tk.StringVar(self.root, initial_names[player])
             self.name_vars.append(name)
@@ -488,7 +523,7 @@ class HogApp:
                                  state="readonly", style="Hog.TCombobox", font=(self.family, 10))
             combo.pack(fill="x")
             self.strategy_boxes.append(combo)
-            hint = self.label(inner, "", 9, fg=self.palette.muted, wraplength=390, height=3)
+            hint = self.label(inner, "", 9, fg=self.palette.muted, wraplength=390, height=2)
             hint.pack(anchor="w", pady=(10, 0))
             self.strategy_hints.append(hint)
             combo.bind("<<ComboboxSelected>>", lambda _event: self._setup_mode_changed())
@@ -510,6 +545,9 @@ class HogApp:
             human = mode == 2 or (mode == 1 and player == 0)
             self.control_labels[player].configure(text="Human player" if human else "Computer player")
             self.strategy_boxes[player].configure(state="disabled" if human else "readonly")
+            self.profile_boxes[player].configure(state="readonly" if human else "disabled")
+            if not human:
+                self.profile_vars[player].set("Guest / no profile")
             key = self.strategy_vars[player].get().split(" / ")[0]
             hint = "You choose the dice on each turn." if human else STRATEGIES[key][2]
             self.strategy_hints[player].configure(text=hint)
@@ -520,7 +558,8 @@ class HogApp:
             config = MatchConfig(self.mode_var.get(),
                                  tuple(name.get().strip() for name in self.name_vars),
                                  tuple(strategy.get().split(" / ")[0] for strategy in self.strategy_vars),
-                                 int(seed) if seed else None)
+                                 int(seed) if seed else None,
+                                 tuple(self.profile_lookup[var.get()] for var in self.profile_vars))
         except (ValueError, KeyError):
             self.setup_error.configure(text="Use names of 1-20 printable characters and a whole-number seed (or leave it blank).")
             return
@@ -530,6 +569,7 @@ class HogApp:
         self.cancel_pending()
         self.audio.stop()
         self.config = config
+        self.match_id = uuid4().hex
         self.session = GameSession(dice=seeded_dice(config.seed))
         self.events = []
         self.selected_count = 5
@@ -542,6 +582,9 @@ class HogApp:
         self.label(title, "THE RACE TO 100", 10, bold=True, fg=self.palette.accent).pack(side="left")
         self.turn_label = self.label(title, "", 11, fg=self.palette.muted)
         self.turn_label.pack(side="left", padx=18)
+        self.save_button = self.button(title, "Save", self.save_current, kind="secondary")
+        self.save_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
+        self.save_button.pack(side="right", padx=4)
         self.restart_button = self.button(title, "Restart / R", self.restart_match, kind="secondary")
         self.restart_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.restart_button.pack(side="right")
@@ -687,6 +730,7 @@ class HogApp:
             selected = count == self.selected_count
             button.configure(state="normal" if human else "disabled", bg=self.palette.accent if selected else self.palette.raised,
                              fg=self.palette.accent_text if selected else self.palette.text, highlightbackground=self.palette.accent if selected else self.palette.raised)
+        self.save_button.configure(state="disabled" if finished else "normal")
         self.advice_button.configure(state="normal" if human else "disabled")
         self.pause_button.configure(text="Resume / P" if self.paused else "Pause / P",
                                     state="disabled" if finished else "normal")
@@ -822,6 +866,10 @@ class HogApp:
         event = self.session.advance(count)
         self.events.append(event)
         if self.session.finished:
+            try:
+                self.store.record_match(self.match_id, self.config, self.session, self.events)
+            except (OSError, sqlite3.Error) as error:
+                self.storage_error = f"Match completed, but history could not be saved: {error}"
             self.audio.play("win")
         elif event.bonus:
             self.audio.play("bonus")
@@ -880,6 +928,210 @@ class HogApp:
         if self.analysis_window is not None and self.analysis_window.winfo_exists():
             self.analysis_window.destroy()
         self.analysis_window = None
+
+    def _profile_selected(self, seat):
+        selected = self.profile_vars[seat].get()
+        if self.profile_lookup.get(selected) is not None:
+            self.name_vars[seat].set(selected)
+
+    def save_current(self):
+        if self.screen != "game" or self.session.finished:
+            return
+        if not self.paused:
+            self.toggle_pause()
+        try:
+            self.store.save(self.config, self.session, self.events, self.match_id)
+            self.status_label.configure(text="Saved. P resumes; Home > Resume saved restores it.")
+        except (OSError, sqlite3.Error, ValueError, AttributeError) as error:
+            self.status_label.configure(text=f"Save failed: {error}")
+
+    def resume_saved(self):
+        try:
+            config, session, events, match_id = self.store.load()
+        except (OSError, sqlite3.Error, ValueError) as error:
+            messagebox.showinfo("Resume saved match", str(error), parent=self.root)
+            return
+        self.cancel_pending()
+        self.close_analysis()
+        self.config, self.session, self.events, self.match_id = config, session, events, match_id
+        self.selected_count = 5
+        self.build_game()
+        self.toggle_pause()
+
+    def _export_history(self):
+        path = filedialog.asksaveasfilename(parent=self.analysis_window, defaultextension=".csv",
+                                          initialfile="hog-history.csv", filetypes=(("CSV", "*.csv"),))
+        if path:
+            try:
+                self.store.export_history(path)
+                self.hub_status.configure(text="History exported.")
+            except (OSError, sqlite3.Error) as error:
+                self.hub_status.configure(text=f"Export failed: {error}")
+
+    def show_player_hub(self):
+        panel = self.analysis_shell("Player hub")
+        self.analysis_window.geometry("960x760")
+        self.hub_status = self.label(panel, self.storage_error or "Profiles are local. Guest matches enter history without profile statistics.",
+                                      10, fg=self.palette.muted, wraplength=900)
+        self.hub_status.pack(anchor="w", pady=(0, 12))
+        create = tk.Frame(panel, bg=self.palette.bg)
+        create.pack(fill="x", pady=(0, 12))
+        name = tk.StringVar(self.root)
+        tk.Entry(create, textvariable=name, width=25).pack(side="left", ipady=6)
+
+        def add():
+            try:
+                self.store.create_profile(name.get())
+                self.show_player_hub()
+            except (ValueError, sqlite3.Error) as error:
+                self.hub_status.configure(text=str(error))
+        self.button(create, "Create profile", add).pack(side="left", padx=10)
+        self.button(create, "Export history CSV", self._export_history, kind="secondary").pack(side="right")
+        notebook = ttk.Notebook(panel)
+        notebook.pack(fill="both", expand=True)
+        self.hub_tabs = {}
+        for title in ("Profiles & achievements", "Match history", "Leaderboard"):
+            page = tk.Frame(notebook, bg=self.palette.panel)
+            notebook.add(page, text=title)
+            self.hub_tabs[title] = page
+        profiles = self.hub_tabs["Profiles & achievements"]
+        listing = tk.Listbox(profiles, bg=self.palette.panel, fg=self.palette.text,
+                              selectbackground=self.palette.accent, selectforeground=self.palette.accent_text,
+                              width=24, relief="flat", exportselection=False)
+        listing.pack(side="left", fill="y", padx=16, pady=16)
+        details = self.label(profiles, "Create a profile, then select it here.\nAssign it to a human seat in Match setup.",
+                             12, wraplength=570)
+        details.pack(side="left", anchor="n", padx=16, pady=24)
+        rows = self.store.stats()
+        for row in rows:
+            listing.insert("end", row["name"])
+
+        def selected(_event=None):
+            if not listing.curselection():
+                return
+            row = rows[listing.curselection()[0]]
+            achievements = self.store.achievements(row["id"])
+            text = (f"{row['name']}\n\nMatches: {row['played']}  |  Wins: {row['wins']}  |  Losses: {row['played'] - row['wins']}\n"
+                    f"Best score: {row['best_score']}\n\nACHIEVEMENTS\n")
+            text += "\n".join(f"{'UNLOCKED' if unlocked else 'LOCKED'} / {title}" for title, unlocked in achievements)
+            details.configure(text=text)
+        listing.bind("<<ListboxSelect>>", selected)
+        if rows:
+            listing.selection_set(0)
+            selected()
+        history = tk.Text(self.hub_tabs["Match history"], bg=self.palette.panel, fg=self.palette.text,
+                           relief="flat", wrap="word", padx=18, pady=16)
+        history.pack(fill="both", expand=True)
+        matches = self.store.history()
+        for row in matches[:100]:
+            record = json.loads(row["payload"])
+            names, scores = record["config"]["names"], record["scores"]
+            history.insert("end", f"{row['finished_at']}\n{names[0]} {scores[0]} : {scores[1]} {names[1]}"
+                           f" / {len(record['events'])} turns\n\n")
+        if not matches:
+            history.insert("end", "No completed matches yet.")
+        history.configure(state="disabled")
+        board = self.hub_tabs["Leaderboard"]
+        self.label(board, "LOCAL PROFILES / sorted by wins, then matches played, then name", 10,
+                   fg=self.palette.muted).pack(anchor="w", padx=18, pady=18)
+        ranking = tk.Text(board, bg=self.palette.panel, fg=self.palette.text, relief="flat",
+                          wrap="word", padx=18, pady=8, font=(self.family, 12))
+        ranking.pack(fill="both", expand=True)
+        for rank, row in enumerate(rows, 1):
+            rate = row["wins"] / row["played"] if row["played"] else 0
+            ranking.insert("end", f"{rank:02d}  {row['name']} / {row['wins']} wins / {row['played']} matches / {rate:.0%}\n\n")
+        ranking.configure(state="disabled")
+
+    def show_tournament(self):
+        panel = self.analysis_shell("Computer tournament")
+        self.analysis_window.geometry("960x760")
+        controls = tk.Frame(panel, bg=self.palette.bg)
+        controls.pack(fill="x")
+        self.label(controls, "Games per seat", 10).pack(side="left")
+        games = tk.StringVar(self.root, "10")
+        tk.Entry(controls, textvariable=games, width=5).pack(side="left", padx=8)
+        self.label(controls, "Seed", 10).pack(side="left")
+        seed = tk.StringVar(self.root, "42")
+        tk.Entry(controls, textvariable=seed, width=8).pack(side="left", padx=8)
+        content = tk.Frame(panel, bg=self.palette.bg)
+        content.pack(fill="x", pady=16)
+        choices = tk.Listbox(content, selectmode="multiple", exportselection=False, width=18, height=10,
+                              bg=self.palette.panel, fg=self.palette.text,
+                              selectbackground=self.palette.accent, selectforeground=self.palette.accent_text)
+        choices.pack(side="left", fill="y", padx=(0, 14))
+        keys = tuple(STRATEGIES)
+        for index, key in enumerate(keys):
+            choices.insert("end", key)
+            if key in ("always5", "adaptive", "sus", "medium", "hard"):
+                choices.selection_set(index)
+        chart = tk.Canvas(content, height=340, width=680, bg=self.palette.panel, highlightthickness=0)
+        chart.pack(side="left", fill="x", expand=True)
+        self.analysis_status = self.label(panel, "Select 2-9 strategies. Every pair plays both starting seats equally.",
+                                          10, wraplength=900, fg=self.palette.muted)
+        self.analysis_status.pack(anchor="w", pady=(0, 12))
+        self.tournament_result = None
+        self.tournament_chart = chart
+
+        def display(result):
+            self.tournament_result = result
+            chart.delete("all")
+            for index, row in enumerate(result["standings"]):
+                y = 12 + index * 34
+                rate = row["wins"] / row["played"]
+                chart.create_text(12, y + 10, text=row["strategy"], anchor="w", fill=self.palette.text)
+                chart.create_rectangle(100, y, 100 + 340 * rate, y + 22, fill=self.palette.accent, outline="")
+                chart.create_text(460, y + 10, text=f"{row['wins']}/{row['played']}  {rate:.0%}",
+                                  anchor="w", fill=self.palette.text)
+            self.analysis_status.configure(text=f"{len(result['matches'])} matches / seed {result['seed']} / "
+                "rank by wins, then point difference, then strategy name. Profiles are unaffected.")
+            export_button.configure(state="normal")
+            run_button.configure(state="normal")
+
+        def run():
+            try:
+                count, seed_value = int(games.get()), int(seed.get())
+                selected_keys = tuple(keys[index] for index in choices.curselection())
+                if not 1 <= count <= 200 or len(selected_keys) < 2:
+                    raise ValueError
+            except ValueError:
+                self.analysis_status.configure(text="Choose at least two strategies, 1-200 games per seat, and an integer seed.")
+                return
+            run_button.configure(state="disabled")
+            self.analysis_status.configure(text="Running the round robin in the background...")
+
+            def ready(result):
+                try:
+                    self.store.save_tournament(result)
+                except sqlite3.Error as error:
+                    self.storage_error = f"Tournament results could not be saved: {error}"
+                display(result)
+            self.poll_analysis(self.worker.submit(run_tournament, selected_keys, count, seed_value), ready)
+
+        def export():
+            path = filedialog.asksaveasfilename(parent=self.analysis_window, defaultextension=".csv",
+                                               initialfile="hog-tournament.csv", filetypes=(("CSV", "*.csv"),))
+            if path and self.tournament_result:
+                try:
+                    export_tournament(path, self.tournament_result)
+                    self.analysis_status.configure(text="Tournament match results exported.")
+                except OSError as error:
+                    self.analysis_status.configure(text=f"Export failed: {error}")
+        run_button = self.button(controls, "Run tournament", run)
+        run_button.pack(side="right")
+        self.tournament_run_button = run_button
+        export_button = self.button(panel, "Export tournament CSV", export, kind="secondary", state="disabled")
+        export_button.pack(anchor="w", pady=(4, 12))
+        saved = self.store.tournaments()
+        if saved:
+            labels = [f"{row['created_at']} / {row['id'][:8]}" for row in saved]
+            recent = tk.StringVar(self.root, labels[0])
+            combo = ttk.Combobox(panel, textvariable=recent, values=labels, state="readonly",
+                                 style="Hog.TCombobox")
+            combo.pack(fill="x")
+            combo.bind("<<ComboboxSelected>>", lambda _event: display(json.loads(saved[labels.index(recent.get())]["payload"])))
+            self.label(panel, "Previously saved tournament / choose to reopen", 9,
+                       fg=self.palette.muted).pack(anchor="w", pady=8)
+            display(json.loads(saved[0]["payload"]))
 
     def analysis_shell(self, title):
         self.close_analysis()
@@ -1039,7 +1291,7 @@ def main(argv=None):
         preferences = replace(preferences, animations=False)
     if args.mute:
         preferences = replace(preferences, sound=False)
-    HogApp(root, preferences=preferences, preferences_path=path)
+    HogApp(root, preferences=preferences, preferences_path=path, data_path=path.parent / "hog.sqlite3")
     root.mainloop()
     return 0
 

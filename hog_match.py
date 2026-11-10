@@ -13,6 +13,7 @@ class MatchConfig:
     names: tuple = ("Player 0", "Computer")
     strategies: tuple = ("always5", "adaptive")
     seed: int | None = None
+    profile_ids: tuple = (None, None)
 
     def __post_init__(self):
         if type(self.num_players) is not int or self.num_players not in (0, 1, 2):
@@ -26,6 +27,14 @@ class MatchConfig:
         if (not isinstance(self.strategies, tuple) or len(self.strategies) != 2
                 or any(key not in STRATEGIES for key in self.strategies)):
             raise ValueError("Choose an available computer strategy.")
+        if not isinstance(self.profile_ids, tuple) or len(self.profile_ids) != 2:
+            raise ValueError("Choose two profile assignments.")
+        if self.profile_ids[0] is not None and self.profile_ids[0] == self.profile_ids[1]:
+            raise ValueError("Each player must use a different profile.")
+        for seat, identifier in enumerate(self.profile_ids):
+            if identifier is not None and (not isinstance(identifier, str) or len(identifier) != 32
+                                           or not self.is_human(seat)):
+                raise ValueError("Profiles may be assigned only to human seats.")
         if self.seed is not None and type(self.seed) is not int:
             raise ValueError("A seed must be a whole number, or leave it blank.")
 

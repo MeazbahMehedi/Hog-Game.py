@@ -11,7 +11,7 @@ from random import Random
 from dice import six_sided, make_test_dice
 
 GOAL = 100
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 
 def _integer(value, name, minimum=0, maximum=None):
@@ -321,6 +321,7 @@ def seeded_dice(seed=None):
 
     def dice():
         return rng.randint(1, 6)
+    dice.rng = rng  # Safe JSON snapshots can retain the exact future dice sequence.
     return dice
 
 
