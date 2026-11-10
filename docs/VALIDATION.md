@@ -1,11 +1,13 @@
-# v3.0.0 Validation
+# v3.1.0 Validation
 
 2026-10-29. Source suite: Linux / Python 3.12.14 / Tk 9.0 with a virtual display.
 
-122 automated checks passed. All 18 doctest examples pass. New tests cover actual tutorial answers, practice goals/rules/validation/seeds, replay score reconstruction and tamper rejection, read-only behavior, tutorial interaction, practice isolation, replay navigation without statistics changes, and live-match accessibility changes.
+135 automated checks passed, with no skipped graphical classes. All 18 doctest examples passed. The 13 additional checks cover Unicode/name initials, bonus/base separation, zero-dice labels, unreadable summary handling, real dashboard totals, navigation reflow, journal resize/manual choice, recorded-history preservation, risk previews, scoring breakdowns, cosmetic RNG isolation, timer cleanup, and compact control bounds across all three themes.
 
-Native build: Linux x86_64, Python 3.12.3, Tk 8.6, PyInstaller 6.22.3, glibc 2.39. The packaged executable passed `--version` and a real-window `--smoke-test` using in-memory data. No Windows/macOS executable or native execution was verified. Optional audio hardware limitations remain.
+The existing suite also covers seeded simulator equivalence, animated turns, pause/restart, saved RNG state, profile deduplication, tutorials, practice isolation, read-only replays, AI policies, and tournaments.
 
-Current screenshots capture real Tk windows on Linux / Tk 8.6. Tutorial and practice screenshots come from actual controls and rule calculations. Replay screenshots reconstruct genuine previously completed matches. No demo database is included.
+Eight current screenshots capture real Tk 8.6 windows on a Linux virtual display. Example profiles/results are seeded in-memory data; no demo SQLite database is shipped. The compact dashboard scrolls to reach its lower cards. Larger text and a manually opened journal may require more window space.
 
-The existing SQLite schema remains at version 1, and previous v2.2.0 standard records/saves remain compatible. Larger-text preferences default off for older settings files. Custom practice sessions are intentionally transient and do not use the 100-point optimal-policy advisor.
+Native build: Linux x86_64, Python 3.12.3, Tk 8.6, PyInstaller 6.22.3, glibc 2.39. The rebuilt executable passed `--version` (3.1.0) and an actual-window `--smoke-test` using temporary data. A clean extracted archive was checked for integrity, relative documentation links, source launcher versions, and native smoke startup. Windows/macOS native execution and physical audio were not verified.
+
+No scoring rule, optimal-policy assumption, persistence schema, or data location changed. UI summaries and turn pulses do not consume scoring dice. Historical README/validation documents describe their own versions.

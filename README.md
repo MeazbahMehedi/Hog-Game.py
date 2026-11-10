@@ -1,20 +1,63 @@
 # The Game of Hog
 
-**v3.0.0 · Showcase Edition · Python 3.10+ / Tkinter**
+**v3.1.0 · Dashboard Edition · Python 3.10+ / Tkinter**
 
-The sixth and final planned upgrade brings together the complete Hog desktop project: interactive learning, practice rules, match replays, accessibility controls, strong opponents, profiles, tournaments, and a tested standalone Linux package. All prior Python source, terminal modes, scoring rules, and documentation remain included.
+A desktop strategy dice game that grew from a Python coursework simulator into a complete local-play application. Challenge nine computer strategies, share a table with a friend, study recorded matches, or run strategy tournaments. v3.1.0 starts a new upgrade cycle with a redesigned dashboard and match table.
 
-![Showcase Edition](docs/screenshots/v3.0.0-home.png)
+![Dashboard Edition](docs/screenshots/v3.1.0-dashboard.png)
 
-## What's New in v3.0.0
+## What's New in v3.1.0
 
-- **Interactive tutorial:** four scored exercises covering dice totals, Sow Sad, Boar Brawl, and Sus Fuss, with immediate feedback.
-- **Match replay viewer:** select a completed desktop match, step forward/backward, jump to the beginning/end, or play/pause recorded turns.
-- **Configurable practice:** choose a 20-200 point goal, starting scores, seed, opponent, and whether Sus Fuss applies.
-- **Accessibility:** a high-contrast theme, larger label/control text, reduced-motion controls, mute, and keyboard guidance.
-- **Native package:** a tested Linux x86_64 one-folder build, plus pinned packaging requirements and Windows/native build scripts.
-- **Complete release history:** all six upgrades are documented, with previous READMEs and screenshots preserved.
-- **122 automated checks**, 18 executable documentation examples, and a native-window launch check.
+- **Dashboard navigation:** a side rail links Play, Learn, Practice, Players, Replay, Tournaments, and Compare. Narrow windows use a horizontal navigation strip.
+- **Local activity cards:** completed desktop matches, local profiles, and saved tournament counts come from your own database. Two leading local profiles and two recent readable results appear below.
+- **Welcoming empty states:** a fresh installation explains how to start a match or create a profile instead of showing invented statistics.
+- **Player identity:** generated initial avatars on the dashboard and score cards; no downloaded images or avatar account required.
+- **Clearer match table:** active-player borders, waiting/paused status, progress bars, and separate cells for ordinary turn points, the Sus Fuss bonus, and the resulting score.
+- **Move preview:** choosing dice updates the probability of rolling at least one 1; zero dice shows the exact guaranteed gain for the current position.
+- **Collapsible journal:** highlighted rule names and turns stay available while the table expands to use the space.
+- **Adaptive layout:** the 960 × 720 minimum supports standard text controls; the dashboard scrolls when needed. At widths below 1180, the rail becomes a strip and the journal initially hides. A manual journal choice takes priority until the next new match.
+- **Cosmetic turn pulse:** the active turn label changes color when motion is enabled. Pause, reduced motion, leaving the table, and closing cancel its timer.
+- **Updated documentation and packaging:** actual v3.1.0 screenshots, cumulative release history, release notes, and a rebuilt Linux executable.
+
+### The Dashboard
+
+Use **Start a match** for solo setup or one of the three mode cards for solo, pass-and-play, or computer-versus-computer matches. **Resume saved** restores your manual save, paused. **Players** opens profile management, achievements, history, and the local leaderboard. **Learn** opens the existing interactive tutorial.
+
+Dashboard match totals include guest and computer desktop matches. Tournament matches are counted separately as tournament runs; terminal games and temporary practice do not enter these totals. The two profile cards follow the existing local leaderboard order: wins, matches played, then name. This is not an online rating.
+
+![Fresh installation](docs/screenshots/v3.1.0-home.png)
+
+### The Match Table
+
+The last completed turn remains visible while the next player chooses. Read the rule label above the base points, the Sus Fuss adjustment, and the resulting score independently. Highlighted dice with a 1 indicate Sow Sad; the full journal preserves earlier turns.
+
+The move preview's Sow Sad percentage is `100 × (1 − (5/6)^n)` for `n` fair six-sided dice, rounded to a whole percent. It describes the next roll's risk, not the chance of winning the match. Zero-dice gain includes any Sus Fuss adjustment. Detailed optimal-policy advice remains an optional separate action.
+
+![Redesigned match table](docs/screenshots/v3.1.0-game.png)
+
+**Show journal / Hide journal** changes only the layout. Resizing, avatar rendering, pulse animation, and move previews never advance the match or consume scoring dice. Existing keyboard controls, pause, save/resume, and advice remain available.
+
+![Compact match table](docs/screenshots/v3.1.0-compact-game.png)
+
+### Appearance and Smaller Windows
+
+Dark, light, and high-contrast themes apply to the new surfaces, avatars, and journal highlights. Larger label/control text remains available in **Access**. At the minimum window size, use the dashboard scrollbar or mouse wheel to reach player and recent-match cards; the desktop is not a mobile layout. Larger text and manually opening the journal may benefit from a wider or taller window.
+
+![Light dashboard](docs/screenshots/v3.1.0-light.png)
+
+![High-contrast table](docs/screenshots/v3.1.0-contrast.png)
+
+![Compact dashboard](docs/screenshots/v3.1.0-compact-dashboard.png)
+
+### Compatibility
+
+Existing v2.2.0/v3.0.0 profiles, settings, completed standard matches, tournaments, and manual saves remain supported. The SQLite schema and data locations are unchanged. This release adds no required Python dependency, online account, server, or network access. Avatars use name initials and are not customizable uploaded pictures in this version.
+
+Screenshot examples use genuine seeded matches and temporary in-memory profiles. Those example profiles and results are not shipped as personal data in the release.
+
+## Retained from v3.0.0
+
+v3.0.0 completed the original six-upgrade plan. Its tutorial, replay viewer, configurable practice, accessibility settings, and native packaging are retained here. Historical screenshots below illustrate when each feature was introduced.
 
 ### Interactive Tutorial
 
@@ -267,7 +310,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v2.0.0 | Animation, themes, optional sound, pause/restart, shortcuts, settings persistence, and 82 checks. |
 | v2.1.0 | Easy/Medium/Hard opponents, exact win-probability policy, optional advice, visual comparisons, and 94 checks. |
 | v2.2.0 | Profiles, statistics, six achievements, history, exact save/resume, local leaderboard, tournaments, CSV export, and 110 checks. |
-| **v3.0.0** | Interactive tutorial, replay navigation, practice settings, accessibility, native Linux build, packaging scripts, and 122 checks. |
+| v3.0.0 | Interactive tutorial, replay navigation, practice settings, accessibility, native Linux build, packaging scripts, and 122 checks. |
+| **v3.1.0** | Dashboard navigation, activity/player cards, initial avatars, adaptive layout, scoring breakdown, risk previews, collapsible journal, turn pulse, and 135 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -281,7 +325,9 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous profiles edition](docs/screenshots/v2.2.0-home.png)
 
-Full earlier documentation: [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+![Previous Showcase Edition](docs/screenshots/v3.0.0-home.png)
+
+Full earlier documentation: [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
@@ -290,6 +336,7 @@ Full earlier documentation: [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/hist
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
+| `hog_dashboard.py` | Initial avatars, recorded result summaries, and scoring breakdown presentation |
 | `hog_showcase.py` | Tutorial exercises, practice rules, validated replay reconstruction |
 | `native/` | Tested Linux one-folder package and native runtime notices |
 | `tools/build_desktop.py` | Reproducible native packaging command |
@@ -313,11 +360,11 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-122 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
+135 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native OS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. The six planned upgrades are complete; future changes are outside this release plan.
+This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.1.0 is the first release in the new improvement roadmap. Later statistics, coaching, campaign, and online features are proposed future work and are not included here.
 
 ## Credits
 
@@ -325,8 +372,10 @@ Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**. Based on 
 
 ## Architecture and Development Takeaways
 
+The new presentation helpers (`hog_dashboard.py`) derive dashboard summaries and scoring labels without modifying match data. Layout, pulse, and scoring callbacks are tracked separately so cosmetic changes cannot advance a match.
+
 The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets or SQLite records.
 
 Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
 
-The original coursework grew into six separately packaged upgrades, each adding a usable feature layer while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.
+The original coursework grew into six separately packaged upgrades, followed by this new dashboard release, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

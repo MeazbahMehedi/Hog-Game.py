@@ -27,6 +27,7 @@ from hog_match import MatchConfig
 from hog_storage import Store
 from hog_tournament import run_tournament, export_tournament
 from hog_showcase import PracticeRules, tutorial_lessons, replay_states
+from hog_dashboard import initials, turn_breakdown, recent_results
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
                              load_preferences, save_preferences)
@@ -97,15 +98,20 @@ class HogApp:
         self._settings_resume = False
         self.settings_save_error = ""
         self.pending = None
+        self.ui_pending = None
+        self.layout_pending = None
+        self.journal_mode = None
+        self.journal_visible = False
+        self._pulse_phase = False
         self.session = None
         self.config = None
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Showcase Edition v{VERSION}")
-        height = max(720, min(820, root.winfo_screenheight() - 70))
-        root.geometry(f"1160x{height}")
-        root.minsize(1040, 720)
+        root.title(f"Hog | Dashboard Edition v{VERSION}")
+        height = max(720, min(880, root.winfo_screenheight() - 70))
+        root.geometry(f"1280x{height}")
+        root.minsize(960, 720)
         root.configure(bg=self.palette.bg)
         root.protocol("WM_DELETE_WINDOW", self.close)
         families = tkfont.families(root)
@@ -121,13 +127,13 @@ class HogApp:
         root.option_add("*TCombobox*Listbox.background", self.palette.panel)
         root.option_add("*TCombobox*Listbox.foreground", self.palette.text)
         self.shell = tk.Frame(root, bg=self.palette.bg)
-        self.shell.pack(fill="both", expand=True, padx=32, pady=22)
+        self.shell.pack(fill="both", expand=True, padx=22, pady=18)
         top = tk.Frame(self.shell, bg=self.palette.bg)
-        top.pack(fill="x", pady=(0, 19))
+        top.pack(fill="x", pady=(0, 14))
         self.label(top, "HOG", 26, bold=True, fg=self.palette.accent).pack(side="left")
-        self.label(top, "  /  THE DICE GAME", 10, fg=self.palette.muted).pack(side="left", pady=(7, 0))
+        self.label(top, "  /  THE DICE GAME", 9, fg=self.palette.muted).pack(side="left", pady=(7, 0))
         self.button(top, "Rules", self.show_rules, kind="secondary").pack(side="right")
-        self.button(top, "Home", self.navigate_home, kind="secondary").pack(side="right", padx=8)
+        self.button(top, "Dashboard", self.navigate_home, kind="secondary").pack(side="right", padx=8)
         self.button(top, "Settings", self.show_settings, kind="secondary").pack(side="right", padx=(0, 8))
         self.button(top, "Access", self.show_accessibility, kind="secondary").pack(side="right", padx=(0, 8))
         self.theme_button = self.button(top, "Light mode" if self.preferences.theme == "dark" else "Dark mode",
@@ -141,6 +147,10 @@ class HogApp:
         self.label(footer, "LOCAL PLAY   /   2 PLAYERS   /   FIRST TO 100", 8, fg=self.palette.muted).pack(side="left")
         self.label(footer, "A little luck. A better decision.", 9, fg=self.palette.accent).pack(side="right")
         root.bind("<KeyPress>", self._keyboard)
+        root.bind("<Configure>", self._queue_layout, add="+")
+        root.bind("<MouseWheel>", self._dashboard_wheel, add="+")
+        root.bind("<Button-4>", self._dashboard_wheel, add="+")
+        root.bind("<Button-5>", self._dashboard_wheel, add="+")
         self.show_home()
 
     def label(self, parent, text, size=11, *, bold=False, fg=None, bg=None, **kwargs):
@@ -170,6 +180,7 @@ class HogApp:
 
     def clear(self, screen):
         self.cancel_pending()
+        self._cancel_ui()
         self.animating = False
         self.paused = False
         self._visual_outcomes = ()
@@ -186,6 +197,10 @@ class HogApp:
 
     def close(self):
         self.cancel_pending()
+        self._cancel_ui()
+        if self.layout_pending is not None:
+            self.root.after_cancel(self.layout_pending)
+            self.layout_pending = None
         self.audio.stop()
         self.close_analysis()
         self.worker.shutdown(wait=False, cancel_futures=True)
@@ -287,6 +302,8 @@ class HogApp:
         self.root.option_add("*TCombobox*Listbox.foreground", new.text)
         self.theme_button.configure(text="Light mode" if theme == "dark" else "Dark mode")
         if self.screen == "game":
+            self.journal.tag_configure("turn", foreground=new.accent)
+            self.journal.tag_configure("rule", foreground=new.gold)
             self.refresh_game()
         self._sync_settings()
         self._persist_preferences()
@@ -299,6 +316,8 @@ class HogApp:
         if self.animating and not self.paused and not self.preferences.animations:
             self.cancel_pending()
             self.finish_roll()
+        if self.screen == "game":
+            self.refresh_game()
         self._sync_settings()
         self._persist_preferences()
 
@@ -429,49 +448,201 @@ class HogApp:
             return None
         return "break"
 
+    def avatar(self, parent, name, player=0, size=42):
+        canvas = tk.Canvas(parent, width=size, height=size, bg=parent.cget("bg"), highlightthickness=0)
+        color = self.palette.accent if player == 0 else self.palette.gold
+        canvas.create_oval(1, 1, size - 1, size - 1, fill=self.palette.raised, outline=color, width=2)
+        canvas.create_text(size / 2, size / 2, text=initials(name), fill=color,
+                           font=(self.family, 12, "bold"))
+        return canvas
+
+    def _queue_layout(self, event=None):
+        if event is not None and event.widget is not self.root:
+            return
+        if self.layout_pending is None:
+            self.layout_pending = self.root.after_idle(self._apply_layout)
+
+    def _apply_layout(self):
+        self.layout_pending = None
+        width = self.root.winfo_width()
+        if self.screen == "home":
+            compact = width < 1180
+            if compact != getattr(self, "dashboard_compact", None):
+                self.dashboard_compact = compact
+                self.dashboard_nav.grid_forget()
+                self.dashboard_view.grid_forget()
+                self.dashboard_nav_title.grid_remove()
+                self.dashboard_nav_note.grid_remove()
+                for button in self.dashboard_buttons:
+                    button.grid_forget()
+                if compact:
+                    self.dashboard_nav.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+                    for column, button in enumerate(self.dashboard_buttons):
+                        button.grid(row=0, column=column, sticky="ew", padx=2, pady=3)
+                    self.dashboard_view.grid(row=1, column=0, columnspan=2, sticky="nsew")
+                    self.dashboard_frame.rowconfigure(0, weight=0)
+                    self.dashboard_frame.rowconfigure(1, weight=1)
+                    self.dashboard_frame.columnconfigure(0, weight=0)
+                    self.dashboard_art.pack_forget()
+                else:
+                    self.dashboard_nav.grid(row=0, column=0, sticky="ns", padx=(0, 18))
+                    self.dashboard_nav_title.grid(row=0, column=0, sticky="w", padx=12, pady=(18, 14))
+                    for row, button in enumerate(self.dashboard_buttons, 1):
+                        button.grid(row=row, column=0, sticky="ew", padx=8, pady=4)
+                    self.dashboard_nav_note.grid(row=10, column=0, sticky="sw", padx=12, pady=18)
+                    self.dashboard_view.grid(row=0, column=1, sticky="nsew")
+                    self.dashboard_frame.rowconfigure(0, weight=1)
+                    self.dashboard_frame.rowconfigure(1, weight=0)
+                    self.dashboard_art.pack(side="right", padx=18, pady=12)
+            self.dashboard_scroll.configure(scrollregion=self.dashboard_scroll.bbox("all"))
+        elif self.screen == "game":
+            visible = width >= 1180 if self.journal_mode is None else self.journal_mode
+            if visible != self.journal_visible:
+                self.journal_visible = visible
+                if visible:
+                    self.journal_panel.grid(row=0, column=1, sticky="nsew", padx=(16, 0))
+                else:
+                    self.journal_panel.grid_remove()
+            self.journal_button.configure(text="Hide journal" if visible else "Show journal")
+
+    def _dashboard_wheel(self, event):
+        if self.screen != "home":
+            return
+        # Only the dashboard itself scrolls; floating rules/settings keep their own input.
+        if event.widget.winfo_toplevel() is not self.root:
+            return
+        if self.dashboard_scroll.bbox("all")[3] <= self.dashboard_scroll.winfo_height():
+            return
+        step = -1 if getattr(event, "num", None) == 4 else 1 if getattr(event, "num", None) == 5 else -int(event.delta / 120)
+        self.dashboard_scroll.yview_scroll(step, "units")
+
+    def _cancel_ui(self):
+        if self.ui_pending is not None:
+            self.root.after_cancel(self.ui_pending)
+            self.ui_pending = None
+
+    def _pulse_turn(self):
+        self.ui_pending = None
+        if self.screen != "game" or self.paused or self.session.finished or not self.preferences.animations:
+            return
+        self._pulse_phase = not self._pulse_phase
+        who = self.session.current_player
+        self.active_labels[who].configure(fg=self.palette.gold if self._pulse_phase else self.palette.accent)
+        self.ui_pending = self.root.after(650, self._pulse_turn)
+
+    def toggle_journal(self):
+        if self.screen == "game":
+            self.journal_mode = not self.journal_visible
+            self._apply_layout()
+
     def show_home(self):
         self.clear("home")
-        hero = self.panel(self.body)
-        hero.pack(fill="x", pady=(0, 18))
+        self.dashboard_compact = None
+        frame = self.dashboard_frame = tk.Frame(self.body, bg=self.palette.bg)
+        frame.pack(fill="both", expand=True)
+        frame.columnconfigure(1, weight=1)
+        nav = self.dashboard_nav = self.panel(frame)
+        self.dashboard_nav_title = self.label(nav, "YOUR TABLE", 9, bold=True, fg=self.palette.muted)
+        self.dashboard_nav_note = self.label(nav, "OFFLINE PLAY\nNo account needed", 9, fg=self.palette.muted)
+        navigation = (("Dashboard", self.show_home), ("Play", lambda: self.show_setup(1)),
+                      ("Learn", self.show_tutorial), ("Practice", self.show_practice),
+                      ("Players", self.show_player_hub), ("Replay", self.show_replay),
+                      ("Tournaments", self.show_tournament), ("Compare", self.show_comparison))
+        self.dashboard_buttons = []
+        for title, command in navigation:
+            button = self.button(nav, title, command, kind="primary" if title == "Dashboard" else "secondary")
+            button.configure(padx=10, pady=9)
+            self.dashboard_buttons.append(button)
+        view = self.dashboard_view = tk.Frame(frame, bg=self.palette.bg)
+        scroll = self.dashboard_scroll = tk.Canvas(view, bg=self.palette.bg, highlightthickness=0)
+        scrollbar = tk.Scrollbar(view, command=scroll.yview)
+        scrollbar.pack(side="right", fill="y")
+        scroll.pack(side="left", fill="both", expand=True)
+        scroll.configure(yscrollcommand=scrollbar.set, yscrollincrement=28)
+        content = tk.Frame(scroll, bg=self.palette.bg)
+        window = scroll.create_window(0, 0, window=content, anchor="nw")
+        scroll.bind("<Configure>", lambda event: scroll.itemconfigure(window, width=event.width))
+        content.bind("<Configure>", lambda _event: scroll.configure(scrollregion=scroll.bbox("all")))
+        heading = tk.Frame(content, bg=self.palette.bg)
+        heading.pack(fill="x", pady=(0, 12))
+        self.label(heading, "Your next great decision.", 24, bold=True).pack(side="left")
+        self.label(heading, "DASHBOARD / LOCAL", 8, fg=self.palette.muted).pack(side="right", pady=(8, 0))
+        hero = self.panel(content)
+        hero.pack(fill="x", pady=(0, 12))
         copy = tk.Frame(hero, bg=self.palette.panel)
-        copy.pack(side="left", fill="both", expand=True, padx=30, pady=28)
-        self.label(copy, "THE CLASSIC GAME. A NEW WAY TO PLAY.", 9, fg=self.palette.accent).pack(anchor="w")
-        self.label(copy, "A little luck.\nA better decision.", 33, bold=True).pack(anchor="w", pady=(12, 10))
-        self.label(copy, "Roll the dice, take the free points, and race to 100.\n"
-                        "Three special rules. Plenty of ways to win.", 12, fg=self.palette.muted).pack(anchor="w")
+        copy.pack(side="left", fill="both", expand=True, padx=22, pady=18)
+        self.label(copy, "ROLL WITH A PLAN", 9, fg=self.palette.accent, bold=True).pack(anchor="w")
+        self.label(copy, "A little luck. A better decision.", 23, bold=True).pack(anchor="w", pady=(7, 6))
+        self.label(copy, "Race to 100. Learn the rules. Find your winning move.", 10,
+                   fg=self.palette.muted).pack(anchor="w")
         actions = tk.Frame(copy, bg=self.palette.panel)
-        actions.pack(anchor="w", pady=(20, 0))
+        actions.pack(anchor="w", pady=(14, 0))
         self.button(actions, "Start a match  >", lambda: self.show_setup(1)).pack(side="left")
-        self.button(actions, "Compare", self.show_comparison, kind="secondary").pack(side="left", padx=10)
-        art = tk.Canvas(hero, width=305, height=284, bg=self.palette.panel, highlightthickness=0)
-        art.pack(side="right", padx=(0, 24), pady=20)
-        art.create_oval(25, 12, 290, 277, fill=self.palette.hero, outline="")
-        draw_die(art, 47, 51, 112, 5, palette=self.palette)
-        draw_die(art, 165, 128, 96, 3, palette=self.palette)
-        art.create_text(155, 257, text="THE RACE TO 100", font=(self.family, 10, "bold"), fill=self.palette.accent)
-        navigation = tk.Frame(self.body, bg=self.palette.bg)
-        navigation.pack(fill="x", pady=(0, 10))
-        self.label(navigation, "CHOOSE YOUR TABLE", 10, bold=True, fg=self.palette.muted).pack(side="left")
-        for title, command in (("Tutorial", self.show_tutorial), ("Practice", self.show_practice),
-                               ("Resume saved", self.resume_saved), ("Tournaments", self.show_tournament),
-                               ("Player hub", self.show_player_hub)):
-            button = self.button(navigation, title, command, kind="secondary")
-            button.configure(pady=6, padx=12)
-            button.pack(side="right", padx=(8, 0))
-        modes = tk.Frame(self.body, bg=self.palette.bg)
-        modes.pack(fill="both", expand=True)
-        options = [(1, "01  /  SOLO", "You vs computer", "Choose a strategy to challenge.\nYour moves. Your decisions."),
-                   (2, "02  /  LOCAL", "Pass & play", "Two people, one screen.\nTake turns choosing your dice."),
-                   (0, "03  /  WATCH", "Strategy showdown", "Let two computer strategies\nplay a complete match.")]
-        for column, (mode, eyebrow, title, description) in enumerate(options):
-            modes.columnconfigure(column, weight=1, uniform="cards")
+        self.button(actions, "Resume saved", self.resume_saved, kind="secondary").pack(side="left", padx=10)
+        art = self.dashboard_art = tk.Canvas(hero, width=190, height=155, bg=self.palette.panel, highlightthickness=0)
+        art.create_oval(4, 0, 183, 154, fill=self.palette.hero, outline="")
+        draw_die(art, 22, 22, 73, 5, palette=self.palette, angle=-9)
+        draw_die(art, 99, 72, 62, 3, palette=self.palette, angle=9)
+        history, profiles = self.store.history(), self.store.stats()
+        self.dashboard_counts = (len(history), len(profiles), len(self.store.tournaments()))
+        metrics = tk.Frame(content, bg=self.palette.bg)
+        metrics.pack(fill="x", pady=(0, 12))
+        for column, (title, count) in enumerate(zip(("COMPLETED MATCHES", "LOCAL PROFILES", "SAVED TOURNAMENTS"), self.dashboard_counts)):
+            metrics.columnconfigure(column, weight=1, uniform="metrics")
+            card = self.panel(metrics)
+            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 5, 0 if column == 2 else 5))
+            self.label(card, title, 8, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(10, 3))
+            self.label(card, str(count), 22, bold=True).pack(anchor="w", padx=16, pady=(0, 9))
+        self.label(content, "CHOOSE YOUR TABLE", 9, bold=True, fg=self.palette.muted).pack(anchor="w", pady=(0, 8))
+        modes = tk.Frame(content, bg=self.palette.bg)
+        modes.pack(fill="x", pady=(0, 12))
+        self.dashboard_mode_buttons = []
+        for column, (mode, title, note) in enumerate(((1, "You vs computer", "Nine strategies to challenge."),
+                                                     (2, "Pass & play", "Two people. One screen."),
+                                                     (0, "Strategy showdown", "Watch two computers compete."))):
+            modes.columnconfigure(column, weight=1, uniform="modes")
             card = self.panel(modes)
-            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 8, 0 if column == 2 else 8))
-            self.label(card, eyebrow, 9, fg=self.palette.gold).pack(anchor="w", padx=20, pady=(20, 12))
-            self.label(card, title, 17, bold=True).pack(anchor="w", padx=20)
-            self.label(card, description, 10, fg=self.palette.muted).pack(anchor="w", padx=20, pady=(9, 16))
-            self.button(card, "Choose mode", lambda chosen=mode: self.show_setup(chosen), kind="secondary").pack(anchor="w", padx=20, pady=(0, 20))
-        modes.rowconfigure(0, weight=1)
+            card.grid(row=0, column=column, sticky="nsew", padx=(0 if column == 0 else 5, 0 if column == 2 else 5))
+            self.label(card, f"0{column + 1} / " + ("SOLO", "LOCAL", "WATCH")[column], 8, fg=self.palette.gold).pack(anchor="w", padx=16, pady=(12, 7))
+            self.label(card, title, 15, bold=True).pack(anchor="w", padx=16)
+            self.label(card, note, 9, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(5, 10))
+            button = self.button(card, "Choose mode  >", lambda chosen=mode: self.show_setup(chosen), kind="secondary")
+            button.configure(pady=6, padx=12)
+            button.pack(anchor="w", padx=16, pady=(0, 12))
+            self.dashboard_mode_buttons.append(button)
+        bottom = tk.Frame(content, bg=self.palette.bg)
+        bottom.pack(fill="x")
+        for col in (0, 1):
+            bottom.columnconfigure(col, weight=1, uniform="bottom")
+        players = self.panel(bottom)
+        players.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        self.label(players, "PLAYERS AT YOUR TABLE", 9, bold=True, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(12, 8))
+        if not profiles:
+            self.label(players, "Make the table yours.", 13, bold=True).pack(anchor="w", padx=16)
+            self.label(players, "Create a profile to track wins and milestones.", 9, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(4, 8))
+        for index, profile in enumerate(profiles[:2]):
+            row = tk.Frame(players, bg=self.palette.panel)
+            row.pack(fill="x", padx=16, pady=4)
+            self.avatar(row, profile["name"], index, 34).pack(side="left", padx=(0, 10))
+            self.label(row, profile["name"], 11, bold=True).pack(side="left")
+            self.label(row, f'{profile["wins"]} wins / {profile["played"]} played', 9, fg=self.palette.muted).pack(side="right")
+        self.button(players, "Manage players", self.show_player_hub, kind="secondary").pack(anchor="w", padx=16, pady=(4, 12))
+        recent = self.panel(bottom)
+        recent.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        self.label(recent, "RECENT MATCHES", 9, bold=True, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(12, 8))
+        results = recent_results(history)
+        if not results:
+            self.label(recent, "Your story starts with a match.", 13, bold=True).pack(anchor="w", padx=16)
+            self.label(recent, "Completed desktop matches appear here.", 9, fg=self.palette.muted).pack(anchor="w", padx=16, pady=(4, 8))
+        for title, score in results:
+            row = tk.Frame(recent, bg=self.palette.panel)
+            row.pack(fill="x", padx=16, pady=8)
+            self.label(row, title, 10, wraplength=245).pack(side="left")
+            self.label(row, score, 12, bold=True, fg=self.palette.accent).pack(side="right")
+        self.button(recent, "Open replays", self.show_replay, kind="secondary").pack(anchor="w", padx=16, pady=(4, 12))
+        if self.storage_error:
+            self.label(content, self.storage_error, 9, fg=self.palette.red, wraplength=700).pack(anchor="w", pady=10)
+        self._queue_layout()
 
     def show_setup(self, mode=1):
         self.clear("setup")
@@ -584,15 +755,19 @@ class HogApp:
         self.session = GameSession(dice=seeded_dice(config.seed))
         self.events = []
         self.selected_count = 5
+        self.journal_mode = None
         self.build_game()
 
     def build_game(self):
         self.clear("game")
         title = tk.Frame(self.body, bg=self.palette.bg)
-        title.pack(fill="x", pady=(0, 15))
-        self.label(title, "THE RACE TO 100", 10, bold=True, fg=self.palette.accent).pack(side="left")
+        title.pack(fill="x", pady=(0, 12))
+        self.label(title, "MATCH TABLE", 9, bold=True, fg=self.palette.accent).pack(side="left")
         self.turn_label = self.label(title, "", 11, fg=self.palette.muted)
-        self.turn_label.pack(side="left", padx=18)
+        self.turn_label.pack(side="left", padx=12)
+        self.journal_button = self.button(title, "Show journal", self.toggle_journal, kind="secondary")
+        self.journal_button.configure(pady=5, padx=8, font=(self.family, 9, "bold"))
+        self.journal_button.pack(side="right", padx=(6, 0))
         self.save_button = self.button(title, "Save", self.save_current, kind="secondary")
         self.save_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.save_button.pack(side="right", padx=4)
@@ -606,7 +781,7 @@ class HogApp:
         self.pause_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.pause_button.pack(side="right", padx=8)
         scores = tk.Frame(self.body, bg=self.palette.bg)
-        scores.pack(fill="x", pady=(0, 18))
+        scores.pack(fill="x", pady=(0, 12))
         self.score_panels, self.score_labels, self.score_bars, self.active_labels = [], [], [], []
         for player in (0, 1):
             scores.columnconfigure(player, weight=1, uniform="scores")
@@ -617,6 +792,7 @@ class HogApp:
             inside.pack(fill="x", padx=22, pady=14)
             top = tk.Frame(inside, bg=self.palette.panel)
             top.pack(fill="x")
+            self.avatar(top, self.config.names[player], player, 36).pack(side="left", padx=(0, 10))
             self.label(top, self.config.names[player], 15, bold=True).pack(side="left")
             active = self.label(top, "", 9, fg=self.palette.accent)
             active.pack(side="right")
@@ -627,27 +803,41 @@ class HogApp:
             score.pack(side="left")
             self.label(score_row, " / 100", 13, fg=self.palette.muted).pack(side="left", pady=(15, 0))
             control = "HUMAN" if self.config.is_human(player) else self.config.strategies[player].upper()
-            self.label(score_row, control, 8, fg=self.palette.muted).pack(side="right", pady=(15, 0))
+            self.label(score_row, control.replace("ALWAYS", "ALWAYS "), 9, fg=self.palette.muted).pack(side="right", pady=(15, 0))
             self.score_labels.append(score)
             bar = tk.Canvas(inside, height=5, bg=self.palette.raised, highlightthickness=0)
             bar.pack(fill="x")
             bar.bind("<Configure>", lambda _event: self._redraw_bars())
             self.score_bars.append(bar)
-        table = tk.Frame(self.body, bg=self.palette.bg)
+        table = self.match_table = tk.Frame(self.body, bg=self.palette.bg)
         table.pack(fill="both", expand=True)
+        table.columnconfigure(0, weight=1)
+        table.rowconfigure(0, weight=1)
         left = self.panel(table)
-        left.pack(side="left", fill="both", expand=True, padx=(0, 18))
+        left.grid(row=0, column=0, sticky="nsew")
         inner = tk.Frame(left, bg=self.palette.panel)
-        inner.pack(fill="both", expand=True, padx=22, pady=18)
+        inner.pack(fill="both", expand=True, padx=18, pady=12)
         self.label(inner, "ON THE TABLE", 9, fg=self.palette.muted, bold=True).pack(anchor="w")
         self.dice_canvas = tk.Canvas(inner, bg=self.palette.panel, height=105, highlightthickness=0)
-        self.dice_canvas.pack(fill="x", pady=(8, 0))
+        self.dice_canvas.pack(fill="x", pady=(2, 0))
         self.dice_canvas.bind("<Configure>", lambda _event: self._draw_outcomes())
-        self.result_label = self.label(inner, "", 12, bold=True, wraplength=600, height=1)
-        self.result_label.pack(anchor="w", fill="x", pady=(0, 3))
-        self.bonus_label = self.label(inner, "", 10, fg=self.palette.accent, wraplength=600, height=1)
+        self.result_label = self.label(inner, "", 11, bold=True, wraplength=650)
+        self.result_label.pack(anchor="w", fill="x", pady=(0, 5))
+        breakdown = tk.Frame(inner, bg=self.palette.panel)
+        breakdown.pack(fill="x", pady=(0, 4))
+        self.breakdown_labels = []
+        for column in range(3):
+            breakdown.columnconfigure(column, weight=1, uniform="breakdown")
+            cell = tk.Frame(breakdown, bg=self.palette.raised)
+            cell.grid(row=0, column=column, sticky="ew", padx=(0 if column == 0 else 3, 0 if column == 2 else 3))
+            caption = self.label(cell, "", 8, fg=self.palette.muted)
+            caption.pack(anchor="w", padx=10, pady=(5, 0))
+            value = self.label(cell, "", 17, bold=True, fg=self.palette.accent if column == 1 else self.palette.text)
+            value.pack(anchor="w", padx=10, pady=(0, 5))
+            self.breakdown_labels.extend((caption, value))
+        self.bonus_label = self.label(inner, "", 9, fg=self.palette.accent, wraplength=650)
         self.bonus_label.pack(anchor="w", fill="x")
-        self.label(inner, "CHOOSE YOUR DICE", 9, fg=self.palette.muted, bold=True).pack(anchor="w", pady=(12, 9))
+        self.label(inner, "CHOOSE YOUR DICE", 9, fg=self.palette.muted, bold=True).pack(anchor="w", pady=(9, 6))
         selector = tk.Frame(inner, bg=self.palette.panel)
         selector.pack(fill="x")
         self.count_buttons = []
@@ -659,15 +849,15 @@ class HogApp:
             button.grid(row=0, column=count, padx=2, sticky="ew")
             self.count_buttons.append(button)
         self.free_label = self.label(inner, "", 9, fg=self.palette.muted, wraplength=610)
-        self.free_label.pack(anchor="w", pady=(12, 12))
+        self.free_label.pack(anchor="w", pady=(7, 7))
         action_row = tk.Frame(inner, bg=self.palette.panel)
         action_row.pack(fill="x")
         self.action_button = self.button(action_row, "", self.roll_human)
         self.action_button.pack(side="left")
         self.status_label = self.label(action_row, "", 9, fg=self.palette.muted, wraplength=280)
         self.status_label.pack(side="left", padx=15)
-        right = self.panel(table, width=290)
-        right.pack(side="right", fill="y")
+        right = self.journal_panel = self.panel(table, width=280)
+        self.journal_visible = False
         right.pack_propagate(False)
         self.label(right, "MATCH JOURNAL", 9, fg=self.palette.muted, bold=True).pack(anchor="w", padx=18, pady=(18, 5))
         self.label(right, "The story so far", 15, bold=True).pack(anchor="w", padx=18, pady=(0, 14))
@@ -680,7 +870,10 @@ class HogApp:
                                yscrollcommand=scrollbar.set, padx=4, spacing3=6)
         self.journal.pack(side="left", fill="both", expand=True)
         scrollbar.configure(command=self.journal.yview)
+        self.journal.tag_configure("turn", foreground=self.palette.accent, font=(self.family, 10, "bold"))
+        self.journal.tag_configure("rule", foreground=self.palette.gold)
         self.refresh_game()
+        self._apply_layout()
 
     def _redraw_bars(self):
         if self.screen != "game":
@@ -760,7 +953,12 @@ class HogApp:
         elif human:
             before = self.session.scores[who]
             gain = sus_update(0, before, self.session.scores[1 - who]) - before
-            self.free_label.configure(text=f"Zero dice guarantees +{gain} points, including any Sus Fuss bonus.")
+            if self.selected_count == 0:
+                preview = f"Selected: 0 dice / guaranteed +{gain}, including any Sus Fuss bonus."
+            else:
+                risk = (1 - (5 / 6) ** self.selected_count) * 100
+                preview = f"Selected: {self.selected_count} dice / {risk:.0f}% Sow Sad risk. Zero dice: guaranteed +{gain}."
+            self.free_label.configure(text=preview)
             text = "Take free points" if self.selected_count == 0 else f"Roll {self.selected_count} dice"
             self.action_button.configure(text=text, state="normal", command=self.roll_human)
             self.status_label.configure(text=f"{self.config.names[who]}'s turn / Enter to play")
@@ -775,7 +973,8 @@ class HogApp:
             active = not self.session.finished and who == player
             self.score_labels[player].configure(text=str(self.session.scores[player]))
             indicator = "YOUR TURN" if self.config.is_human(player) else "COMPUTER TURN"
-            self.active_labels[player].configure(text=indicator if active else "")
+            self.active_labels[player].configure(text=("PAUSED" if self.paused else indicator) if active else "WAITING" if not self.session.finished else "FINISHED",
+                                                 fg=self.palette.accent if active else self.palette.muted)
             self.score_panels[player].configure(highlightbackground=self.palette.accent if active else self.palette.border,
                                                 highlightthickness=2 if active else 1)
         prefix = "PAUSED / " if self.paused else "ROLLING / " if self.animating else ""
@@ -792,18 +991,24 @@ class HogApp:
         else:
             self.result_label.configure(text="Make your first move.")
             self.bonus_label.configure(text="Choose 0-10 dice. Any rolled 1 makes the turn worth 1 point.")
+        for label, text in zip(self.breakdown_labels, turn_breakdown(self.events[-1] if self.events else None)):
+            label.configure(text=text)
         self._draw_outcomes()
         self._redraw_bars()
         self._refresh_controls()
+        self._cancel_ui()
+        if not self.paused and not self.session.finished and self.preferences.animations:
+            self.ui_pending = self.root.after(650, self._pulse_turn)
         self.journal.configure(state="normal")
         self.journal.delete("1.0", "end")
         if not self.events:
             self.journal.insert("end", "Match ready.\nPlayer 0 goes first.\n")
         for event in self.events:
             bonus = f" +{event.bonus} bonus" if event.bonus else ""
-            self.journal.insert("end", f"{event.number:02d}  {self.config.names[event.player]}\n"
-                                f"{event.num_rolls} dice / +{event.turn_points}{bonus}\n"
-                                f"Total: {event.score_after}\n\n")
+            self.journal.insert("end", f"{event.number:02d}  {self.config.names[event.player]}\n", "turn")
+            rule = "Boar Brawl" if event.num_rolls == 0 else "Sow Sad" if 1 in event.outcomes else "Dice total"
+            self.journal.insert("end", f"{rule} / {event.num_rolls} dice\n", "rule")
+            self.journal.insert("end", f"+{event.turn_points}{bonus} / Total {event.score_after}\n\n")
         self.journal.configure(state="disabled")
         self.journal.see("end")
         if (not self.session.finished and not self.paused and not self.animating

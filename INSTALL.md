@@ -1,4 +1,4 @@
-# Installation and Native Builds
+# Installation and Native Builds — v3.1.0
 
 ## Source / Windows, macOS, Linux
 
@@ -29,8 +29,12 @@ PyInstaller requires a Python shared library. Some Linux distributions package i
 
 ## Data Compatibility
 
-The existing local `Hog/settings.json` and `Hog/hog.sqlite3` locations remain unchanged. Older preferences load with larger text disabled by default. v2.2.0 profile records, standard match history, and saved matches remain supported. Close the application before backing up its database.
+The existing local `Hog/settings.json` and `Hog/hog.sqlite3` locations remain unchanged. Older preferences load with larger text disabled by default. v2.2.0/v3.0.0 profile records, standard match history, and saved matches remain supported. Close the application before backing up its database.
 
 ## Installation Checks
 
 `--version` needs no display. `--smoke-test` opens a desktop briefly and exits using temporary data. Full tests run with `python -m unittest discover -s tests -v`; GUI classes skip if a display is absent.
+
+## Window Layout
+
+The standard-text minimum is 960 × 720. Below 1180 pixels wide, dashboard navigation becomes horizontal and the match journal initially hides. Use Show journal to reopen it. The dashboard has a scrollbar for lower cards. Larger text can need a bigger window.

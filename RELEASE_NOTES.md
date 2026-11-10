@@ -1,15 +1,31 @@
 # GitHub Release Details
 
-**Tag:** `v3.0.0`
+**Tag:** `v3.1.0`
 
-**Title:** `v3.0.0 - Showcase Edition`
+**Title:** `v3.1.0 - Dashboard Edition`
 
 ## Description
 
-The final planned Hog upgrade adds an interactive tutorial, read-only match replay navigation, configurable practice rules, a high-contrast theme, larger text controls, and a tested standalone Linux desktop package.
+Hog gets a redesigned dashboard and match table, with clearer navigation and scoring feedback.
 
-All previous rules, computer strategies, move advice, profiles, achievements, saved games, tournaments, themes, animations, sound, and terminal tools remain available. Practice does not alter standard statistics, and replay never rolls new dice or records duplicate matches.
+### What's new
 
-Extract and run `python hog_desktop.py`, or launch the included Linux x86_64 package. The ZIP includes Windows build scripts, but not a Windows executable. Native Windows/macOS execution is not claimed.
+- Dashboard navigation, activity totals, player cards, and recent match summaries.
+- Name-initial avatars and helpful empty states for new players.
+- Clearer score cards and separate turn points, Sus Fuss bonus, and resulting score.
+- Dice-choice previews with Sow Sad risk and guaranteed zero-dice gain.
+- Collapsible, highlighted match journal.
+- Adaptive layouts for smaller windows and a motion-aware active-turn pulse.
+- Updated README, eight real screenshots, cumulative changelog, and archived earlier documentation.
 
-Verified: 122 automated checks, 18 executable documentation examples, and a real-window native Linux smoke test. Updated screenshots, installation instructions, cumulative changelog, and earlier READMEs document the entire six-release progression.
+All previous game rules, nine strategies, profiles, achievements, tournaments, save/resume, tutorials, practice, replay viewer, themes, accessibility, and terminal tools remain available. Existing local data is compatible without a schema migration.
+
+### Run
+
+Extract the ZIP and run `python hog_desktop.py`. Python 3.10+ and Tkinter are required. A rebuilt Linux x86_64 one-folder package is included. Windows users can play from source or build locally using `build-windows.bat`; a Windows executable is not included.
+
+### Validation
+
+135 automated checks and 18 doctest examples passed on Linux. The rebuilt Linux executable passed version and real-window smoke checks. Windows/macOS native execution and physical audio were not verified.
+
+Later roadmap features, including statistics charts, coaching, campaigns, and online multiplayer, are not part of this release.

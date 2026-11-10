@@ -2,6 +2,19 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.1.0 - Dashboard Edition - 2026-10-29
+
+- Replaced the home menu with a scrollable dashboard, navigation rail/strip, real activity totals, recent results, and local player cards.
+- Added name-initial avatars, helpful fresh-installation states, and quick access to retained features.
+- Added separate turn-point, Sus Fuss, and resulting-score cells.
+- Added selected-roll Sow Sad risk and exact zero-dice gain previews.
+- Added journal show/hide controls and highlighted scoring-rule entries.
+- Added adaptive dashboard/game layouts with a 960 × 720 standard-text minimum.
+- Added an independent cosmetic turn pulse that respects pause and reduced motion.
+- Kept schema 1 and existing data compatibility; no new runtime dependency.
+- Added 13 tests, bringing the suite to 135, plus 18 doctest examples.
+- Captured eight actual current-version screenshots and rebuilt/tested the Linux bundle.
+
 ## v3.0.0 - Showcase Edition - 2026-10-29
 
 - Added four interactive tutorial exercises backed by real scoring functions.
