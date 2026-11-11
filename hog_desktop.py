@@ -28,51 +28,22 @@ from hog_storage import Store
 from hog_tournament import run_tournament, export_tournament
 from hog_showcase import PracticeRules, tutorial_lessons, replay_states
 from hog_dashboard import initials, turn_breakdown, recent_results
+from hog_insights_ui import InsightsUI
+from hog_drawing import draw_die
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
                              load_preferences, save_preferences)
 
-PIPS = {
-    1: ((1, 1),),
-    2: ((0, 0), (2, 2)),
-    3: ((0, 0), (1, 1), (2, 2)),
-    4: ((0, 0), (2, 0), (0, 2), (2, 2)),
-    5: ((0, 0), (2, 0), (1, 1), (0, 2), (2, 2)),
-    6: ((0, 0), (0, 1), (0, 2), (2, 0), (2, 1), (2, 2)),
-}
 
 
-def draw_die(canvas, x, y, size, value, *, accent=False, palette=None, angle=0):
-    """Vector dice; rotation is cosmetic and never changes a game outcome."""
-    palette = palette or PALETTES["dark"]
-    fill = ("#f4c375" if palette is PALETTES["dark"] else "#ffdc9e") if accent else palette.die
-    radians = math.radians(angle)
-    center_x, center_y = x + size / 2, y + size / 2
-
-    def rotate(px, py):
-        dx, dy = px - center_x, py - center_y
-        return (center_x + dx * math.cos(radians) - dy * math.sin(radians),
-                center_y + dx * math.sin(radians) + dy * math.cos(radians))
-
-    corners = [rotate(x, y), rotate(x + size, y),
-               rotate(x + size, y + size), rotate(x, y + size)]
-    shadow = [(px + 3, py + 4) for px, py in corners]
-    canvas.create_polygon(shadow, fill=palette.shadow, outline="")
-    canvas.create_polygon(corners, fill=fill, outline=palette.border, width=1)
-    radius = size * .062
-    for column, row in PIPS[value]:
-        cx, cy = rotate(x + size * (.26 + column * .24), y + size * (.26 + row * .24))
-        canvas.create_oval(cx - radius, cy - radius, cx + radius, cy + radius,
-                           fill=palette.pip, outline="")
-
-
-class HogApp:
+class HogApp(InsightsUI):
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hog-analysis")
         self.policy_future = self.worker.submit(policy)
         self.analysis_window = None
+        self._redraw_insights = None
         self.analysis_pending = None
         self.storage_error = ""
         try:
@@ -108,7 +79,7 @@ class HogApp:
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Dashboard Edition v{VERSION}")
+        root.title(f"Hog | Statistics Edition v{VERSION}")
         height = max(720, min(880, root.winfo_screenheight() - 70))
         root.geometry(f"1280x{height}")
         root.minsize(960, 720)
@@ -269,7 +240,7 @@ class HogApp:
             options = widget.keys()
             for key in ("background", "foreground", "activebackground", "activeforeground",
                         "highlightbackground", "highlightcolor", "insertbackground",
-                        "selectbackground", "selectforeground", "disabledforeground", "selectcolor"):
+                        "selectbackground", "selectforeground", "disabledforeground", "selectcolor", "troughcolor"):
                 if key in options:
                     value = str(widget.cget(key)).lower()
                     if value in colors:
@@ -305,6 +276,8 @@ class HogApp:
             self.journal.tag_configure("turn", foreground=new.accent)
             self.journal.tag_configure("rule", foreground=new.gold)
             self.refresh_game()
+        if self._redraw_insights is not None:
+            self._redraw_insights()
         self._sync_settings()
         self._persist_preferences()
 
@@ -547,7 +520,8 @@ class HogApp:
         navigation = (("Dashboard", self.show_home), ("Play", lambda: self.show_setup(1)),
                       ("Learn", self.show_tutorial), ("Practice", self.show_practice),
                       ("Players", self.show_player_hub), ("Replay", self.show_replay),
-                      ("Tournaments", self.show_tournament), ("Compare", self.show_comparison))
+                      ("Tournaments", self.show_tournament), ("Compare", self.show_comparison),
+                      ("Stats", self.show_statistics))
         self.dashboard_buttons = []
         for title, command in navigation:
             button = self.button(nav, title, command, kind="primary" if title == "Dashboard" else "secondary")
@@ -1134,10 +1108,14 @@ class HogApp:
         self.button(actions, "Play again", lambda: self.start_match(self.config)).pack(side="left")
         self.button(actions, "New setup", lambda: self.show_setup(self.config.num_players), kind="secondary").pack(side="left", padx=12)
         self.button(actions, "Review final table", self.build_game, kind="secondary").pack(side="left")
+        self.button(actions, "Replay", lambda: self.show_replay(self.match_id), kind="secondary").pack(side="left", padx=10)
+        self.button(actions, "Statistics", self.show_statistics, kind="secondary").pack(side="left")
         seed_note = "A fixed seed restarts the same dice sequence on replay." if self.config.seed is not None else "No seed selected: each new match uses a fresh dice sequence."
         self.label(self.body, seed_note, 9, fg=self.palette.muted).pack(anchor="w", pady=(18, 0))
 
     def close_analysis(self):
+        self._redraw_insights = None
+        self.replay_playing = False
         if self.analysis_pending is not None:
             self.root.after_cancel(self.analysis_pending)
             self.analysis_pending = None
@@ -1330,102 +1308,6 @@ class HogApp:
         play_button.pack(side="left", padx=12)
         self.practice_play_button = play_button
 
-    def show_replay(self):
-        panel = self.analysis_shell("Match replay viewer")
-        self.analysis_window.geometry("940x760")
-        records = self.store.history()[:100]
-        if not records:
-            self.label(panel, "Complete a standard desktop match to create a replay.", 12).pack(anchor="w")
-            return
-        labels = []
-        for row in records:
-            record = json.loads(row["payload"])
-            labels.append(f"{row['finished_at']} / {' vs '.join(record['config']['names'])} / {row['id'][:6]}")
-        selected = tk.StringVar(self.root, labels[0])
-        combo = ttk.Combobox(panel, textvariable=selected, values=labels, state="readonly", style="Hog.TCombobox")
-        combo.pack(fill="x", pady=(0, 18))
-        heading = self.label(panel, "", 19, bold=True)
-        heading.pack(anchor="w", pady=12)
-        canvas = tk.Canvas(panel, height=150, bg=self.palette.panel, highlightthickness=0)
-        canvas.pack(fill="x")
-        details = self.label(panel, "", 12, wraplength=880, fg=self.palette.accent)
-        details.pack(anchor="w", pady=18)
-        self.replay_index = 0
-        self.replay_playing = False
-        self.replay_states = ()
-
-        def stop():
-            self.replay_playing = False
-            if self.analysis_pending is not None:
-                self.root.after_cancel(self.analysis_pending)
-                self.analysis_pending = None
-
-        def draw():
-            state = self.replay_states[self.replay_index]
-            event = state["event"]
-            names = self.replay_record["config"]["names"]
-            heading.configure(text=f"{names[0]} {state['scores'][0]} : {state['scores'][1]} {names[1]}")
-            canvas.delete("all")
-            if event:
-                for index, value in enumerate(event.outcomes):
-                    draw_die(canvas, 20 + index * 67, 30, 52, value, accent=value == 1, palette=self.palette)
-                if not event.outcomes:
-                    canvas.create_text(25, 60, text="Zero dice / Boar Brawl", anchor="w",
-                                       fill=self.palette.text, font=(self.family, 15))
-                details.configure(text=f"Turn {event.number}/{len(self.replay_states)-1} / {names[event.player]} / "
-                    f"{event.num_rolls} dice / +{event.turn_points} points / +{event.bonus} bonus / total {event.score_after}")
-            else:
-                details.configure(text="Before turn 1 / both players start at zero.")
-            self.replay_step_label.configure(text=f"Position {self.replay_index} of {len(self.replay_states)-1}")
-
-        def advance(delta):
-            if not self.replay_states:
-                return
-            stop()
-            self.replay_index = max(0, min(len(self.replay_states)-1, self.replay_index + delta))
-            draw()
-
-        def tick():
-            self.analysis_pending = None
-            if not self.replay_playing or self.analysis_window is None:
-                return
-            if self.replay_index >= len(self.replay_states)-1:
-                stop()
-                return
-            self.replay_index += 1
-            draw()
-            self.analysis_pending = self.root.after(800, tick)
-
-        def play_pause():
-            if self.replay_playing:
-                stop()
-            else:
-                self.replay_playing = True
-                tick()
-
-        def load(_event=None):
-            stop()
-            try:
-                record = json.loads(records[labels.index(selected.get())]["payload"])
-                states = replay_states(record)
-            except (ValueError, TypeError) as error:
-                details.configure(text=f"Replay unavailable: {error}")
-                return
-            self.replay_record, self.replay_states, self.replay_index = record, states, 0
-            draw()
-        actions = tk.Frame(panel, bg=self.palette.bg)
-        actions.pack(anchor="w", pady=10)
-        for text, command in (("First", lambda: advance(-999)), ("Previous", lambda: advance(-1)),
-                              ("Play / pause", play_pause), ("Next", lambda: advance(1)), ("Last", lambda: advance(999))):
-            self.button(actions, text, command, kind="secondary").pack(side="left", padx=(0, 8))
-        self.replay_step_label = self.label(panel, "", 10, fg=self.palette.muted)
-        self.replay_step_label.pack(anchor="w", pady=12)
-        self.label(panel, "Read-only reconstruction: no new dice, profile updates, or match records.",
-                   10, fg=self.palette.muted).pack(anchor="w")
-        self.replay_advance = advance
-        combo.bind("<<ComboboxSelected>>", load)
-        load()
-
     def _profile_selected(self, seat):
         selected = self.profile_vars[seat].get()
         if self.profile_lookup.get(selected) is not None:
@@ -1485,6 +1367,7 @@ class HogApp:
         self.button(create, "Create profile", add).pack(side="left", padx=10)
         self.button(create, "Export history CSV", self._export_history, kind="secondary").pack(side="right")
         self.button(create, "Replay viewer", self.show_replay, kind="secondary").pack(side="right", padx=8)
+        self.button(create, "Statistics", self.show_statistics, kind="secondary").pack(side="right")
         notebook = ttk.Notebook(panel)
         notebook.pack(fill="both", expand=True)
         self.hub_tabs = {}
@@ -1767,7 +1650,7 @@ class HogApp:
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Showcase Edition")
+    parser = argparse.ArgumentParser(description="Hog Statistics Edition")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--theme", choices=tuple(PALETTES), help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")

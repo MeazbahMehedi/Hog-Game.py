@@ -2,6 +2,20 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.2.0 - Statistics and Replay Edition - 2026-10-29
+
+- Added a statistics workspace with profile identity filters and explicit all-seat scope.
+- Added observed dice-choice frequencies, rule counts, mean turn gains, and per-opponent results.
+- Added final-score, turn-gain, bonus, margin, and winning-streak records.
+- Added replay score charts, timeline scrubbing, chart-click seeking, and milestone jumps.
+- Added 0.5×/1×/2×/4× playback with visible Play/Pause state and timer cleanup.
+- Added factual scoring explanations from recorded outcomes, without AI move judgments.
+- Added validated record reading with duplicate-ID protection and invalid-record exclusion counts.
+- Split shared vector dice, charts, statistics, and analysis-window presentation into focused modules.
+- Kept schema 1, prior save/settings compatibility, original rules, and standard-library source play.
+- Added 21 tests, bringing the suite to 156 checks plus 18 doctest examples.
+- Captured eight real current screenshots and rebuilt/tested the Linux desktop package.
+
 ## v3.1.0 - Dashboard Edition - 2026-10-29
 
 - Replaced the home menu with a scrollable dashboard, navigation rail/strip, real activity totals, recent results, and local player cards.

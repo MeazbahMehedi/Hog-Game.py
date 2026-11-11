@@ -1,13 +1,13 @@
-# v3.1.0 Validation
+# v3.2.0 Validation
 
-2026-10-29. Source suite: Linux / Python 3.12.14 / Tk 9.0 with a virtual display.
+2026-10-29. Source suite: Linux / Python 3.12.14 / Tk 9.0, using a virtual display.
 
-135 automated checks passed, with no skipped graphical classes. All 18 doctest examples passed. The 13 additional checks cover Unicode/name initials, bonus/base separation, zero-dice labels, unreadable summary handling, real dashboard totals, navigation reflow, journal resize/manual choice, recorded-history preservation, risk previews, scoring breakdowns, cosmetic RNG isolation, timer cleanup, and compact control bounds across all three themes.
+156 automated checks passed with all graphical classes enabled. All 18 doctest examples passed. The 21 new checks cover both-seat accounting, identity-based profile filtering, computer/human opponent grouping, chronological win streaks, dice frequencies, scoring milestones, turn explanations, corrupt/legacy/duplicate records, chart-click bounds, active-profile defaults, empty states, actual timed replay playback, speed changes, seeking, restart-at-end, closure, minimum popup layout, theme redraws, and unchanged storage/live RNG.
 
-The existing suite also covers seeded simulator equivalence, animated turns, pause/restart, saved RNG state, profile deduplication, tutorials, practice isolation, read-only replays, AI policies, and tournaments.
+After the final presentation adjustments, the 21 insights checks were rerun successfully. Existing tests continue to cover simulator equivalence, save/resume RNG state, transaction deduplication, AI policies, practice isolation, tutorials, animation, and terminal controls.
 
-Eight current screenshots capture real Tk 8.6 windows on a Linux virtual display. Example profiles/results are seeded in-memory data; no demo SQLite database is shipped. The compact dashboard scrolls to reach its lower cards. Larger text and a manually opened journal may require more window space.
+Eight current screenshots capture actual Tk 8.6 windows with seeded completed matches and temporary in-memory profiles. They are not generated mockups or measured strategy benchmarks. The supplied release contains no example SQLite database.
 
-Native build: Linux x86_64, Python 3.12.3, Tk 8.6, PyInstaller 6.22.3, glibc 2.39. The rebuilt executable passed `--version` (3.1.0) and an actual-window `--smoke-test` using temporary data. A clean extracted archive was checked for integrity, relative documentation links, source launcher versions, and native smoke startup. Windows/macOS native execution and physical audio were not verified.
+The Linux x86_64 package was rebuilt with Python 3.12.3, Tk 8.6, PyInstaller 6.22.3 and glibc 2.39. Its version is 3.2.0; version and actual-window smoke checks passed. The clean extracted ZIP passed integrity, relative Markdown-link, source launcher version, and native smoke checks. Older glibc compatibility, Windows/macOS native execution, and physical audio were not verified.
 
-No scoring rule, optimal-policy assumption, persistence schema, or data location changed. UI summaries and turn pulses do not consume scoring dice. Historical README/validation documents describe their own versions.
+SQLite schema 1 and existing data locations remain unchanged. Statistics validate all completed desktop records, while replay offers the latest 100 stored records. Both are read-only snapshots. All-seat win rate is explicitly labeled as 50% by construction, and personal streaks require one profile. No historical record is repaired, deleted, or inferred during analysis.

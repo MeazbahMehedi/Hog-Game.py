@@ -1,4 +1,4 @@
-"""Capture actual v3.1.0 Tk windows. Optional capture dependency: Pillow.
+"""Capture actual v3.2.0 Tk windows. Optional capture dependency: Pillow.
 
 Run on a graphical desktop: python tools/capture_desktop.py
 All example data is held in memory; nothing is added to the user's database.
@@ -17,7 +17,7 @@ from hog_match import MatchConfig
 from hog_preferences import Preferences
 
 
-def capture(root, name):
+def capture(root, name, target=None):
     # Force a fresh mapping before capture on window-manager-free displays.
     root.withdraw()
     root.update()
@@ -29,32 +29,39 @@ def capture(root, name):
             expose(child)
     expose(root)
     root.update()
-    root.lift()
+    (target or root).deiconify()
+    (target or root).lift()
+    expose(target or root)
+    root.update()
     root.after(180, root.quit)
     root.mainloop()
     root.update()
-    root.winfo_pointerxy()
-    x, y = root.winfo_rootx(), root.winfo_rooty()
+    target = target or root
+    target.winfo_pointerxy()
+    x, y = target.winfo_rootx(), target.winfo_rooty()
     path = ROOT / 'docs/screenshots' / f'v{VERSION}-{name}.png'
-    ImageGrab.grab(bbox=(x, y, x + root.winfo_width(), y + root.winfo_height())).save(path)
+    ImageGrab.grab(bbox=(x, y, x + target.winfo_width(), y + target.winfo_height())).save(path)
     print(path.name)
 
 
 def seed_examples(app):
-    alice = app.store.create_profile('Meazbah')
-    bob = app.store.create_profile('Alex')
-    for seed in (42, 43, 44):
-        config = MatchConfig(2, ('Meazbah', 'Alex'), ('always5', 'always6'), seed, (alice, bob))
+    own = app.store.create_profile('Meazbah')
+    other = app.store.create_profile('Alex')
+    for seed in range(42, 54):
+        opponent = ('always5', 'always6', 'catch-up', 'medium')[seed % 4]
+        config = MatchConfig(1, ('Meazbah', opponent), ('adaptive', opponent), seed, (own, None))
         session = GameSession(dice=seeded_dice(seed))
         events = []
         while not session.finished:
             who = session.current_player
-            events.append(session.advance(STRATEGIES[config.strategies[who]][0](*session.scores[::1 if who == 0 else -1])))
+            count = (session.turn_number * 3 + seed) % 11 if who == 0 else STRATEGIES[opponent][0](session.scores[1], session.scores[0])
+            events.append(session.advance(count))
         app.store.record_match(f'capture-{seed}', config, session, events)
+    return own
 
 
 def main():
-    scenes = ('home', 'dashboard', 'compact-dashboard', 'game', 'compact-game', 'light', 'contrast', 'setup')
+    scenes = ('dashboard', 'statistics', 'opponents', 'records', 'replay', 'replay-light', 'replay-contrast', 'empty-statistics')
     if len(sys.argv) == 1:
         for scene in scenes:
             subprocess.run([sys.executable, __file__, scene], check=True)
@@ -69,29 +76,24 @@ def main():
         root.geometry('1280x880+20+20')
         root.update()
         try:
-            if scene != 'home':
-                seed_examples(app)
+            if scene != 'empty-statistics':
+                own = seed_examples(app)
                 app.show_home()
-            if scene in ('game', 'compact-game', 'contrast'):
-                app.start_match(MatchConfig(2, ('Meazbah', 'Alex'), ('always5', 'always6'), 42))
-                for _ in range(10):
-                    who = app.session.current_player
-                    count = STRATEGIES[app.config.strategies[who]][0](*app.session.scores[::1 if who == 0 else -1])
-                    app.complete_turn(count)
-                    app.cancel_pending()
-                app.select_count(6)
-                if scene == 'contrast':
+            if scene in ('statistics', 'opponents', 'records', 'empty-statistics'):
+                app.show_statistics(None if scene == 'empty-statistics' else own)
+                if scene in ('opponents', 'records'):
+                    page = app.statistics_tabs[scene.title()]
+                    page.master.select(page)
+            elif scene.startswith('replay'):
+                app.show_replay()
+                # Display the actual largest score gain, not a manufactured event.
+                number = next(number for number, label in app.replay_moments if 'Largest score gain' in label)
+                app.replay_seek(number)
+                if scene == 'replay-light':
+                    app.set_theme('light')
+                elif scene == 'replay-contrast':
                     app.set_theme('contrast')
-            elif scene == 'light':
-                app.set_theme('light')
-            elif scene == 'setup':
-                app.show_setup(1)
-                app.profile_vars[0].set('Meazbah')
-                app._profile_selected(0)
-                app.seed_var.set('42')
-            if scene.startswith('compact'):
-                root.geometry('960x720+20+20')
-            capture(root, scene)
+            capture(root, scene, app.analysis_window)
             if errors:
                 raise errors[0]
         finally:

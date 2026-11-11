@@ -1,31 +1,31 @@
 # GitHub Release Details
 
-**Tag:** `v3.1.0`
+**Tag:** `v3.2.0`
 
-**Title:** `v3.1.0 - Dashboard Edition`
+**Title:** `v3.2.0 - Statistics and Replay Edition`
 
 ## Description
 
-Hog gets a redesigned dashboard and match table, with clearer navigation and scoring feedback.
+Understand your Hog games with a new statistics workspace and an interactive match replay timeline.
 
 ### What's new
 
-- Dashboard navigation, activity totals, player cards, and recent match summaries.
-- Name-initial avatars and helpful empty states for new players.
-- Clearer score cards and separate turn points, Sus Fuss bonus, and resulting score.
-- Dice-choice previews with Sow Sad risk and guaranteed zero-dice gain.
-- Collapsible, highlighted match journal.
-- Adaptive layouts for smaller windows and a motion-aware active-turn pulse.
-- Updated README, eight real screenshots, cumulative changelog, and archived earlier documentation.
+- Profile-specific statistics and explicit all-recorded-seat filtering.
+- Dice-choice charts, rule counts, average turn gains, and per-opponent win rates.
+- Personal records for scores, turn gains, bonuses, winning margins, and win streaks.
+- Replay score progression charts with click-to-seek and a draggable timeline.
+- Playback speeds from 0.5× to 4×, milestone jumps, and factual turn explanations.
+- Validated read-only analysis with invalid-record exclusion notices.
+- Eight new screenshots, cumulative README/changelog, and archived previous documentation.
 
-All previous game rules, nine strategies, profiles, achievements, tournaments, save/resume, tutorials, practice, replay viewer, themes, accessibility, and terminal tools remain available. Existing local data is compatible without a schema migration.
+All previous desktop and terminal features remain available. No scoring rules or database schema changed. Statistics use completed standard desktop games; practice and tournament results stay separate. Replay never rolls new dice or modifies history.
 
 ### Run
 
-Extract the ZIP and run `python hog_desktop.py`. Python 3.10+ and Tkinter are required. A rebuilt Linux x86_64 one-folder package is included. Windows users can play from source or build locally using `build-windows.bat`; a Windows executable is not included.
+Extract the ZIP and run `python hog_desktop.py` with Python 3.10+ and Tkinter. A rebuilt Linux x86_64 package is included. Windows users can play from source or build locally with `build-windows.bat`; a Windows executable is not included.
 
 ### Validation
 
-135 automated checks and 18 doctest examples passed on Linux. The rebuilt Linux executable passed version and real-window smoke checks. Windows/macOS native execution and physical audio were not verified.
+156 automated checks and 18 doctest examples passed on Linux. Timed playback, seeking, profile filters, record validation, theme redraws, and storage/RNG isolation are covered. The rebuilt Linux executable passed version and actual-window smoke checks. Windows/macOS native execution and physical audio were not verified.
 
-Later roadmap features, including statistics charts, coaching, campaigns, and online multiplayer, are not part of this release.
+AI coaching, campaign progression, and online multiplayer remain future releases.

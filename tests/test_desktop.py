@@ -261,7 +261,7 @@ class DesktopLauncherTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "hog_desktop.py", "--version"],
                                 cwd=root, capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "3.1.0")
+        self.assertEqual(result.stdout.strip(), "3.2.0")
 
 
 if __name__ == "__main__":

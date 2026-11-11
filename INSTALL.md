@@ -1,4 +1,4 @@
-# Installation and Native Builds — v3.1.0
+# Installation and Native Builds — v3.2.0
 
 ## Source / Windows, macOS, Linux
 
@@ -38,3 +38,7 @@ The existing local `Hog/settings.json` and `Hog/hog.sqlite3` locations remain un
 ## Window Layout
 
 The standard-text minimum is 960 × 720. Below 1180 pixels wide, dashboard navigation becomes horizontal and the match journal initially hides. Use Show journal to reopen it. The dashboard has a scrollbar for lower cards. Larger text can need a bigger window.
+
+## Statistics and Replays
+
+Open Stats in dashboard navigation, or Statistics in Player hub. The default profile is the one with the most completed matches. Open Replay to inspect the latest 100 completed desktop records. Both windows require at least 900 × 720 and read existing schema-1 data without migrations. Close and reopen Statistics to refresh its snapshot.
