@@ -1,24 +1,100 @@
 # The Game of Hog
 
-**v3.4.0 · Campaign and Customization Edition · Python 3.10+ / Tkinter**
+**v3.5.0 · Private Multiplayer Edition · Python 3.10+ / Tkinter**
 
-Six tables. Your own trail. Follow a campaign map, face opponents with distinct playing styles, earn objective stars, and equip cosmetic rewards. Progress and equipment belong to your local profile and survive restarting the app. All previous standard matches, statistics, replays, coaching, puzzles, tournaments and terminal tools remain available.
+Share a table with a friend through a private room. This release adds an authoritative Python relay and desktop multiplayer: invitation codes, ready status, synchronized scoring, turn timers, rematches and temporary seat reconnection. The complete local game, campaign, cosmetics, coaching and analysis tools remain included.
 
-![Campaign map](docs/screenshots/v3.4.0-campaign-map.png)
+![Private multiplayer](docs/screenshots/v3.5.0-online-game.png)
 
-## What's New in v3.4.0
+## What's New in v3.5.0
 
-- **Six-stage campaign:** a clickable progression map with locked, available and cleared tables.
-- **Opponent personalities:** named characters describe six existing deterministic strategy algorithms, from the steady five-dice baseline to optimal-policy play.
-- **Three objectives per stage:** one clear condition and two optional star conditions. Earn up to 18 best stars across the campaign.
-- **Persistent profile progress:** completed attempts, clears and best single-attempt stars are stored separately for each profile.
-- **Wardrobe:** preview and equip earned dice skins, avatar presets, and two new theme palettes.
-- **Cosmetic dice:** classic ivory plus unlockable Cobalt, Ruby and Nebula colors. Sow Sad dice retain their contrasting highlight.
-- **Profile avatars:** initials plus unlockable Panda and Crown vector presets.
-- **Theme rewards:** Aurora teal and Twilight violet, alongside the existing dark, light and high-contrast themes.
-- **Campaign milestones:** five achievements with visible progress bars.
-- **Safe data upgrade:** schema-1 databases get a backup before a transactional upgrade to schema 2. Existing records and manual saves remain intact.
-- **Documentation and packaging:** nine actual current screenshots, cumulative history, release notes and a rebuilt Linux desktop package.
+- **Private rooms:** create an eight-character invitation code or join a friend's room on the same relay.
+- **Ready lobby:** both players explicitly ready up before round 1.
+- **Server-owned scoring:** clients send a dice count; the relay generates the actual roll and applies the original rules.
+- **Synchronized table:** player presence, scores, active turn, last dice, bonuses and a scrollable turn journal.
+- **Turn timers:** disabled, 30, 60 or 120 seconds; a connected player timeout takes the real zero-dice action.
+- **Reconnection:** heartbeat-based connection indicators, timer pauses, temporary seat reservation and automatic transport retries.
+- **Rematches:** both players vote to start another round; the starting seat alternates.
+- **Retry protection:** match/turn checks and request identities prevent a repeated response-loss retry from rolling twice.
+- **HTTP(S) client and relay:** optional direct TLS and trusted-CA configuration, with certificate verification enabled.
+- **Window cleanup fix:** cyclic view callbacks are disposed on the Tk thread before workers can collect them.
+- **Release material:** eight actual screenshots, a two-client smoke script, hosting guide, archived documentation and rebuilt Linux client.
+
+## Try Multiplayer Locally
+
+Start the relay in one terminal:
+
+```bash
+python hog_server.py
+```
+
+Keep it running. Open two desktop clients in separate terminals:
+
+```bash
+python hog_desktop.py
+```
+
+In each client, choose **Online** in dashboard navigation. Use `http://127.0.0.1:8765`, enter a display name, and create or join a room. The creator shares the code; both players click **Ready**.
+
+![Connection setup](docs/screenshots/v3.5.0-online-setup.png)
+
+The relay is a separate Python process. The ZIP does not deploy a public server, and opening Online does not start one automatically. Both players need the same reachable relay address as well as the room code. For LAN hosting, direct HTTPS, certificates and troubleshooting, read [ONLINE.md](ONLINE.md).
+
+A quick automated network check needs no display:
+
+```bash
+python tools/network_smoke.py
+```
+
+## Private Rooms and Ready Status
+
+Create uses seat 0; Join takes the vacant seat. A room has two players and rejects extra joins while full or playing. Ready can be toggled in the lobby. The relay starts the match when both occupied seats are connected and ready.
+
+![Ready lobby](docs/screenshots/v3.5.0-lobby.png)
+
+The clipboard button copies only the room code. The private seat token remains in memory and is not copied, shown in the interface or stored in local profile data. Names are temporary display names rather than verified accounts.
+
+## Turns, Timers and Results
+
+Choose 0–10 dice and click **Play selected dice** during your turn. The relay validates your seat, match ID and turn number. It rolls exactly once, updates the scores, and supplies the same event log to both clients. Displayed dice are those recorded server outcomes.
+
+A move timeout automatically selects zero dice. It earns Boar Brawl points and receives any Sus Fuss adjustment, exactly like a chosen zero-dice move. Timeout events are marked in the journal. A timer of zero disables automatic turn timeouts.
+
+![Round result](docs/screenshots/v3.5.0-round-finished.png)
+
+Goal finishes, explicit departures and expired reconnect reservations have distinct result reasons. A forfeit can end an online round before either score reaches 100; these results never enter standard local match history.
+
+Both players must request a rematch. A new round resets the scores and event log, creates a new match identity and server dice stream, and alternates the opening seat. Round 1 starts with seat 0, round 2 with seat 1.
+
+![Rematch](docs/screenshots/v3.5.0-rematch.png)
+
+## Disconnect and Reconnect
+
+The desktop normally polls approximately every 600 ms through a dedicated network worker. If a request fails, it retries. Interrupted moves retain their original request identity, so accepting a move and losing its response cannot create a second roll when the client retries.
+
+After eight seconds without an authenticated heartbeat, a player is marked disconnected and the relay pauses the turn timer. The reservation expires 90 seconds after the last successful heartbeat. Reconnecting both players within that period restores the remaining timer; a reservation expiry ends an active round by forfeit, or without a winner when both seats expire.
+
+![Connection pause](docs/screenshots/v3.5.0-connection-pause.png)
+
+**Disconnect**, closing the room window, or opening another analysis view stops polling while retaining the token in the running app. Reopen **Online** to reconnect. **Leave room** removes the seat immediately and forfeits an active round. App exit loses the token, and relay restart removes all rooms; this release provides no cross-restart online recovery or cloud account.
+
+## Hosting, HTTPS and Scope
+
+For trusted LAN play, start `python hog_server.py --host 0.0.0.0 --port 8765` and enter the host's actual LAN address in the clients. For internet play, provide a host reachable by both players and use HTTPS. The relay supports `--certfile` and `--keyfile`; the client performs normal certificate and hostname validation and accepts an optional trusted CA PEM file. Full commands are in [ONLINE.md](ONLINE.md).
+
+Online state is temporary relay memory. It does not alter local profile wins, standard statistics, campaign stars, achievements, replays, coaching history, tournaments or manual saves. Local profile IDs and cosmetic inventories are not transmitted. Online seats use neutral dice styling; local and campaign customization remains unchanged.
+
+![Light multiplayer table](docs/screenshots/v3.5.0-online-light.png)
+
+The SQLite schema stays at 2; the previous schema-1 backup/migration path is retained. No runtime dependency beyond Python/Tkinter is added. The native Linux package is a multiplayer-capable client; the relay runs from the Python source. Native Windows/macOS networking and public-internet routing were not tested here.
+
+![Dashboard with Online navigation](docs/screenshots/v3.5.0-dashboard.png)
+
+All new screenshots show actual Tk windows using a real temporary loopback relay and independent clients. Demonstration rooms shut down after capture. No credentials, server private keys or personal database are included in the ZIP.
+
+## Retained from v3.4.0
+
+The persistent six-stage campaign, objective stars, named strategy personalities, wardrobe, dice/avatar/theme rewards and milestone progress bars remain available. The following campaign sections and historical screenshots explain those retained features.
 
 ## Start Your Campaign
 
@@ -106,7 +182,7 @@ The first normal launch against a schema-1 database creates **`hog.sqlite3.v1-ba
 
 The existing database, settings paths, profiles, standard history, tournaments and manual save format remain supported. The SQL database version becomes **2**; the standard saved-match JSON format remains **1**. Earlier Hog releases cannot open schema 2. Keep the pre-upgrade backup if you intend to return to an older version, and close the app before copying or restoring database files. An existing backup is not overwritten.
 
-Campaign data lives in `campaign_runs` and `profile_cosmetics`. Campaign attempts do **not** enter standard match history, the local wins leaderboard, standard CSV exports, or standard statistics/replay/decision-review selectors. Those selectors continue to cover standard desktop matches. Completing campaign stages never replaces or clears the standard manual save slot. No cloud account or synchronization is added.
+Campaign data lives in `campaign_runs` and `profile_cosmetics`. Campaign attempts do **not** enter standard match history, the local wins leaderboard, standard CSV exports, or standard statistics/replay/decision-review selectors. Those selectors continue to cover standard desktop matches. Completing campaign stages never replaces or clears the standard manual save slot. Campaign progression stays local and is not synchronized with the multiplayer relay.
 
 The main standard-text minimum remains 960 × 720; analysis and campaign windows support 900 × 720 with larger text sometimes needing more space. The dashboard keeps two compact navigation rows. No required runtime dependency is added.
 
@@ -401,7 +477,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v3.1.0 | Dashboard navigation, activity/player cards, initial avatars, adaptive layout, scoring breakdown, risk previews, collapsible journal, turn pulse, and 135 checks. |
 | v3.2.0 | Profile statistics, opponent results, dice-choice charts, records, interactive score timelines, replay speeds, factual turn explanations, and 156 checks. |
 | v3.3.0 | Expanded move coach, pre-roll decision review, eight model-based puzzles, session learning progress, navigation fixes, and 177 checks. |
-| **v3.4.0** | Six-stage persistent campaign, objective stars, opponent personalities, wardrobe, dice/avatar/theme rewards, milestone bars, schema-2 migration/backup, and 207 checks. |
+| v3.4.0 | Six-stage persistent campaign, objective stars, opponent personalities, wardrobe, dice/avatar/theme rewards, milestone bars, schema-2 migration/backup, and 207 checks. |
+| **v3.5.0** | Private rooms, relay-owned scoring, ready lobby, timers, retries/reconnection, alternating rematches, HTTPS, cleanup regression fix, and 236 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -417,7 +494,7 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous Showcase Edition](docs/screenshots/v3.0.0-home.png)
 
-Full earlier documentation: [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+Full earlier documentation: [v3.4.0](docs/history/v3.4.0.md), [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
@@ -426,6 +503,11 @@ Full earlier documentation: [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/hist
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
+| `hog_online.py` | Authoritative room lifecycle, server scoring, turn/seat validation and reconnect timing |
+| `hog_server.py` | Bounded HTTP(S) relay, JSON requests, TLS and in-memory rooms |
+| `hog_online_client.py` | Validated HTTP(S) calls, certificate checks and in-memory seat credentials |
+| `hog_online_ui.py` | Lobby/table UI, network worker, retry scheduling and presence |
+| `ONLINE.md` | Local, LAN and HTTPS hosting instructions and lifecycle details |
 | `hog_campaign.py` | Stage catalog, objective evaluation, unlock thresholds and milestone targets |
 | `hog_campaign_storage.py` | Validated campaign runs, persistent best progress and profile equipment |
 | `hog_campaign_ui.py` | Campaign map, stage matches, wardrobe and milestones |
@@ -459,17 +541,19 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-207 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
+236 checks passed on Python 3.12.3 / Tk 8.6 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.4.0 is the fourth release in the new improvement roadmap. Online multiplayer and the final distribution-polish release remain future work.
+This edition includes self-hosted private multiplayer. It does not include public matchmaking, cloud accounts, persistent online rooms, or a prebuilt Windows/macOS executable. v3.5.0 is the fifth release in the new improvement roadmap; the final distribution-polish release remains future work.
 
 ## Credits
 
 Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**. Based on the supplied Python Programming Project 1 Hog assignment and starter files. Original `dice.py` and `ucb.py` are retained; `ucb.py` credits UC Berkeley project utilities. This expanded GitHub edition goes beyond the coursework restriction to edit only `hog.py`.
 
 ## Architecture and Development Takeaways
+
+The multiplayer relay is authoritative and independent of local persistence. A dedicated client executor makes HTTP(S) calls; only the Tk thread updates widgets. Request identities and match/turn checks distinguish a retry from a new move. Closing views cancels polling, and closing the app releases cyclic view callbacks on the Tk thread.
 
 Campaign rules, persistence and presentation are split across three focused modules. Stage results are validated before they unlock profile cosmetics; campaign attempts have a separate lifecycle from standard saved matches.
 
@@ -479,4 +563,4 @@ The project separates scoring and turn events (`hog.py`), probability analysis (
 
 Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
 
-The original coursework grew into six separately packaged upgrades, followed by dashboard, statistics, coaching, and campaign releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.
+The original coursework grew into six separately packaged upgrades, followed by dashboard, statistics, coaching, campaign and private-multiplayer releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

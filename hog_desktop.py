@@ -5,6 +5,7 @@ Canvas dice are drawn with vector shapes; no image assets are needed at runtime.
 """
 
 import argparse
+import gc
 import sys
 from dataclasses import fields, replace
 import math
@@ -31,6 +32,7 @@ from hog_dashboard import initials, turn_breakdown, recent_results
 from hog_insights_ui import InsightsUI
 from hog_coach_ui import CoachUI
 from hog_campaign_ui import CampaignUI
+from hog_online_ui import OnlineUI
 from hog_drawing import draw_die, draw_avatar
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, BASE_THEMES, PACE_DELAYS, Preferences, default_preferences_path,
@@ -38,7 +40,7 @@ from hog_preferences import (PALETTES, BASE_THEMES, PACE_DELAYS, Preferences, de
 
 
 
-class HogApp(CampaignUI, CoachUI, InsightsUI):
+class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
@@ -81,7 +83,7 @@ class HogApp(CampaignUI, CoachUI, InsightsUI):
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Campaign Edition v{VERSION}")
+        root.title(f"Hog | Multiplayer Edition v{VERSION}")
         height = max(720, min(880, root.winfo_screenheight() - 70))
         root.geometry(f"1280x{height}")
         root.minsize(960, 720)
@@ -176,9 +178,22 @@ class HogApp(CampaignUI, CoachUI, InsightsUI):
             self.layout_pending = None
         self.audio.stop()
         self.close_analysis()
+        self.shutdown_online()
         self.worker.shutdown(wait=False, cancel_futures=True)
         self.store.close()
         self.root.destroy()
+        # Drop view closures on the Tk thread. Otherwise a cyclic GC run in a
+        # worker can become the last owner of a destroyed Tcl interpreter.
+        for name, value in tuple(vars(self).items()):
+            if callable(value) and (getattr(value, "__closure__", None) is not None
+                                    or getattr(value, "__self__", None) is self):
+                setattr(self, name, None)
+        value = None  # Release the last inspected closure before collecting cycles.
+        if "report_callback_exception" in vars(self.root):
+            del self.root.report_callback_exception
+        # Mutually referencing view callbacks can outlive their widgets. Dispose
+        # of those cycles here, before another worker allocation triggers GC.
+        gc.collect()
 
     def navigate_home(self):
         if self.session and not self.session.finished and self.screen == "game":
@@ -523,7 +538,7 @@ class HogApp(CampaignUI, CoachUI, InsightsUI):
                       ("Players", self.show_player_hub), ("Replay", self.show_replay),
                       ("Tournaments", self.show_tournament), ("Compare", self.show_comparison),
                       ("Stats", self.show_statistics), ("Coach", self.show_coaching_hub),
-                      ("Campaign", self.show_campaign))
+                      ("Campaign", self.show_campaign), ("Online", self.show_online))
         self.dashboard_buttons = []
         for title, command in navigation:
             button = self.button(nav, title, command, kind="primary" if title == "Dashboard" else "secondary")
@@ -1117,6 +1132,7 @@ class HogApp(CampaignUI, CoachUI, InsightsUI):
         self.label(self.body, seed_note, 9, fg=self.palette.muted).pack(anchor="w", pady=(18, 0))
 
     def close_analysis(self):
+        self.close_online_view()
         self._redraw_insights = None
         self.replay_playing = False
         if self.analysis_pending is not None:
@@ -1626,7 +1642,7 @@ class HogApp(CampaignUI, CoachUI, InsightsUI):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Campaign Edition")
+    parser = argparse.ArgumentParser(description="Hog Multiplayer Edition")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--theme", choices=BASE_THEMES, help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")

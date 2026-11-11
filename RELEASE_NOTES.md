@@ -1,35 +1,33 @@
 # GitHub Release Details
 
-**Tag:** `v3.4.0`
+**Tag:** `v3.5.0`
 
-**Title:** `v3.4.0 - Campaign and Customization Edition`
+**Title:** `v3.5.0 - Private Multiplayer Edition`
 
 ## Description
 
-Follow a six-stage Hog campaign, earn objective stars, and customize your local player profile.
+Play Hog with a friend through a private room on a relay you host.
 
 ### What's new
 
-- A clickable campaign map with sequential stage unlocks.
-- Named opponents with distinct existing strategy behaviors.
-- Three objectives per stage and persistent best stars per profile.
-- A wardrobe with earned dice skins, Panda/Crown avatar presets and Aurora/Twilight themes.
-- Campaign milestone progress bars.
-- Validated seeded attempts and duplicate-run protection.
-- Nine new screenshots, cumulative README/changelog and archived earlier documentation.
+- Room invitation codes, a two-player ready lobby and synchronized desktop tables.
+- Authoritative server dice/scoring with seat, turn and match validation.
+- Optional turn timers with clearly marked zero-dice timeout moves.
+- Presence indicators, timer pauses, temporary seat reconnection and automatic retry handling.
+- Duplicate-move protection when a successful response is lost.
+- Rematch voting with alternating starting seats.
+- Standard-library HTTP(S) relay, certificate-verifying client and hosting guide.
+- Tk view cleanup fix for background-worker garbage collection.
+- Eight actual screenshots, updated cumulative README and archived prior documentation.
 
-Campaign results remain separate from standard wins, history, statistics, tournaments and the manual save slot. Cosmetic changes never alter scoring dice. Only completed campaign attempts are saved; position-puzzle learning remains session-only.
+### Start locally
 
-### Database upgrade
+Run `python hog_server.py` in one terminal and `python hog_desktop.py` in another. Open Online and use `http://127.0.0.1:8765`. Both players need the same running, reachable relay plus a room code. Read ONLINE.md for LAN/HTTPS hosting. No public server is deployed by this ZIP.
 
-The first launch against a schema-1 database creates `hog.sqlite3.v1-backup` if absent, then migrates transactionally to schema 2. Existing profiles, matches, tournaments and manual saves are preserved. Earlier releases cannot open schema 2; retain the backup before downgrading. Close the app before copying/restoring its data.
-
-### Run
-
-Extract and run `python hog_desktop.py` with Python 3.10+ and Tkinter. A rebuilt Linux x86_64 package is included. Windows users can play from source or build locally with `build-windows.bat`; no prebuilt Windows executable is included.
+Online results stay separate from local wins, campaign progress, statistics and saves. Seat credentials live only in app memory; app exit loses them, and relay restart removes rooms. Existing offline features and SQLite schema 2 are preserved.
 
 ### Validation
 
-207 automated checks and 18 doctest examples passed on Linux. Coverage includes all six three-star completion paths, migration/backup failures, persistence, profile isolation, locked rewards, seeded validation and unchanged standard saves/RNG. The Linux executable passed version and actual-window smoke checks. Windows/macOS native execution and physical audio were not verified.
+236 automated checks and 18 doctest examples passed on Linux. Real HTTP/TLS clients completed a round/rematch; tests cover response-loss retries, timeout moves, reconnect timing, malformed requests, token isolation and Tk lifecycle cleanup. The rebuilt Linux client passed version and actual-window smoke checks. Public internet/NAT routing and native Windows/macOS execution were not verified.
 
-Online multiplayer and the final polish release remain future work.
+The final distribution-polish release remains next in the roadmap.

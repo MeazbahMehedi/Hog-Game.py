@@ -1,24 +1,25 @@
-"""Capture actual v3.4.0 Tk windows. Optional capture dependency: Pillow.
+"""Capture actual multiplayer windows over a real temporary loopback relay.
 
-Run on a graphical desktop: python tools/capture_desktop.py
-All example data is held in memory; nothing is added to the user's database.
+Optional capture dependency: Pillow. No user data or credentials are saved.
 """
 
 from pathlib import Path
 import sys
 import subprocess
-import json
-from uuid import uuid4
+import threading
+import time
+import ctypes
+import ctypes.util
 from PIL import ImageGrab
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from hog import GameSession, STRATEGIES, VERSION, seeded_dice
+from hog import GameSession, VERSION, seeded_dice
 from hog_desktop import HogApp, tk
-from hog_match import MatchConfig
 from hog_preferences import Preferences
-from hog_campaign import stages
-
+from hog_online import Rooms
+from hog_online_client import OnlineClient
+from hog_server import RelayServer
 
 def capture(root, name, target=None):
     # Force a fresh mapping before capture on window-manager-free displays.
@@ -27,6 +28,8 @@ def capture(root, name, target=None):
     root.deiconify()
     root.update()
     def expose(widget):
+        if "background" in widget.keys():
+            widget.configure(background=widget.cget("background"))
         widget.event_generate("<Expose>")
         for child in widget.winfo_children():
             expose(child)
@@ -40,6 +43,43 @@ def capture(root, name, target=None):
     root.mainloop()
     root.update()
     target = target or root
+    expose(target)
+    root.update()
+    if sys.platform.startswith('linux'):
+        # Real X exposure events refresh Tk backing pixels after transient-window
+        # remapping on a virtual display without a window manager.
+        x11 = ctypes.CDLL(ctypes.util.find_library('X11'))
+        x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XClearArea.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int, ctypes.c_uint, ctypes.c_uint, ctypes.c_int]
+        x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+        display = x11.XOpenDisplay(None)
+        if display:
+            def clear(widget):
+                if widget.winfo_viewable():
+                    x11.XClearArea(display, widget.winfo_id(), 0, 0, 0, 0, 1)
+                for child in widget.winfo_children():
+                    clear(child)
+            clear(target)
+            x11.XSync(display, 0)
+            root.update()
+            x11.XSync(display, 0)
+            root.update()
+            x11.XCloseDisplay(display)
+    labels = []
+    def collect_labels(widget):
+        if widget.winfo_class() == 'Label' and widget.winfo_viewable():
+            labels.append((widget, widget.cget('text')))
+        for child in widget.winfo_children():
+            collect_labels(child)
+    collect_labels(target)
+    for widget, _text in labels:
+        widget.configure(text=' ')
+    root.update()
+    for widget, text in labels:
+        widget.configure(text=text)
+    root.update()
     target.winfo_pointerxy()
     x, y = target.winfo_rootx(), target.winfo_rooty()
     path = ROOT / 'docs/screenshots' / f'v{VERSION}-{name}.png'
@@ -47,38 +87,27 @@ def capture(root, name, target=None):
     print(path.name)
 
 
-CERTIFICATES = json.loads((ROOT / 'tests/fixtures/campaign_three_stars.json').read_text())
-
-
-def seed_examples(app, identifier, completed=2):
-    for stage in stages()[:completed]:
-        choices = iter(CERTIFICATES[stage.identifier])
-        session = GameSession(dice=seeded_dice(stage.seed))
-        events = []
-        while not session.finished:
-            count = next(choices) if session.current_player == 0 else STRATEGIES[stage.strategy][0](session.scores[1], session.scores[0])
-            events.append(session.advance(count))
-        app.store.record_campaign(uuid4().hex, identifier, stage.identifier, events)
-
-
-def drive_campaign(app, turns=None):
-    choices = iter(CERTIFICATES[app.campaign_stage.identifier])
-    while not app.campaign_session.finished and (turns is None or len(app.campaign_events) < turns):
-        if app.analysis_pending is not None:
-            app.root.after_cancel(app.analysis_pending)
-            app.analysis_pending = None
-        if app.campaign_session.current_player == 0:
-            app.campaign_count_buttons[next(choices)].invoke()
-            app.campaign_roll_button.invoke()
+def wait(root, app, predicate):
+    deadline = time.monotonic() + 8
+    def check():
+        if predicate() or time.monotonic() >= deadline:
+            root.quit()
         else:
-            app.campaign_cpu()
-    if app.analysis_pending is not None:
-        app.root.after_cancel(app.analysis_pending)
-        app.analysis_pending = None
+            root.after(10, check)
+    root.after(10, check)
+    root.mainloop()
+    if not predicate():
+        raise RuntimeError(app.online_connection_label.cget('text'))
+
+
+def refresh(root, app):
+    wait(root, app, lambda: not app.online_busy)
+    app.online_submit('state', {})
+    wait(root, app, lambda: not app.online_busy)
 
 
 def main():
-    scenes = ('dashboard', 'campaign-map', 'campaign-stage', 'campaign-cleared', 'wardrobe', 'milestones', 'aurora', 'cosmetic-game', 'empty-campaign')
+    scenes = ('dashboard', 'online-setup', 'lobby', 'online-game', 'connection-pause', 'round-finished', 'rematch', 'online-light')
     if len(sys.argv) == 1:
         for scene in scenes:
             subprocess.run([sys.executable, __file__, scene], check=True)
@@ -86,54 +115,63 @@ def main():
     for scene in sys.argv[1:]:
         if scene not in scenes:
             raise ValueError('Unknown capture scene')
+        offset = [0]
+        rooms = Rooms(clock=lambda: time.monotonic() + offset[0], game_factory=lambda: GameSession(dice=seeded_dice(42)))
+        server = RelayServer(('127.0.0.1', 0), rooms)
+        thread = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': .03}, daemon=True)
+        thread.start()
         root = tk.Tk()
         errors = []
         root.report_callback_exception = lambda kind, error, trace: errors.append(error)
-        app = HogApp(root, cpu_delay=600000, preferences=Preferences(animations=False))
-        root.geometry('1280x880+20+20')
-        root.update()
+        app = HogApp(root, preferences=Preferences(animations=False))
+        root.geometry('1280x880+20+20');root.update()
         try:
-            if scene == 'empty-campaign':
-                app.show_campaign()
-            else:
-                identifier = app.store.create_profile('Meazbah')
-                other = app.store.create_profile('Alex')
-                completed = 6 if scene in ('wardrobe', 'milestones', 'cosmetic-game', 'aurora') else 0 if scene == 'campaign-cleared' else 2
-                seed_examples(app, identifier, completed)
-                app.show_home()
-                if scene in ('campaign-map', 'wardrobe', 'milestones', 'aurora'):
-                    app.show_campaign(identifier)
-                    if scene == 'wardrobe':
-                        app.store.equip_cosmetic(identifier, 'dice', 'nebula')
-                        app.store.equip_cosmetic(identifier, 'avatar', 'panda')
-                        app.store.equip_cosmetic(identifier, 'theme', 'twilight')
-                        app.set_theme('twilight')
-                        app.show_campaign(identifier)
-                        page = app.campaign_tabs['Wardrobe'];page.master.select(page)
-                    elif scene == 'milestones':
-                        page = app.campaign_tabs['Milestones'];page.master.select(page)
-                    elif scene == 'aurora':
-                        app.store.equip_cosmetic(identifier, 'theme', 'aurora')
-                        app.set_theme('aurora')
-                elif scene == 'campaign-stage':
-                    app.start_campaign_stage(identifier, 'the-pursuit')
-                    drive_campaign(app, 6)
-                elif scene == 'campaign-cleared':
-                    app.start_campaign_stage(identifier, 'first-steps')
-                    drive_campaign(app)
-                elif scene == 'cosmetic-game':
-                    app.store.equip_cosmetic(identifier, 'dice', 'nebula')
-                    app.store.equip_cosmetic(identifier, 'avatar', 'panda')
-                    app.set_theme('twilight')
-                    app.start_match(MatchConfig(2, ('Meazbah', 'Alex'), seed=42, profile_ids=(identifier, other)))
-                    for _ in range(9):
-                        app.complete_turn(6)
-                        app.cancel_pending()
+            if scene != 'dashboard':
+                app.show_online()
+            if scene not in ('dashboard', 'online-setup'):
+                endpoint = 'http://127.0.0.1:' + str(server.server_port)
+                app.online_address_var.set(endpoint)
+                app.online_name_var.set('Meazbah')
+                app.online_create_button.invoke()
+                wait(root, app, lambda: app.online_room_built and not app.online_busy)
+                peer = OnlineClient(endpoint)
+                peer.join('Alex', app.online_state['room'])
+                refresh(root, app)
+                if scene != 'lobby':
+                    app.online_ready_button.invoke()
+                    wait(root, app, lambda: not app.online_busy)
+                    peer.call('ready', {'ready': True})
+                    refresh(root, app)
+                    if scene in ('round-finished', 'rematch'):
+                        while app.online_state['phase'] == 'playing':
+                            state = app.online_state
+                            if state['current_player'] == 0:
+                                app.online_count_buttons[0].invoke();app.online_move_button.invoke()
+                                wait(root, app, lambda: not app.online_busy)
+                            else:
+                                peer.call('move', peer.move_payload(state, 0));refresh(root, app)
+                    else:
+                        for count in (6, 5, 0, 8, 2, 5):
+                            state = app.online_state
+                            if state['current_player'] == 0:
+                                app.online_count_buttons[count].invoke();app.online_move_button.invoke()
+                                wait(root, app, lambda: not app.online_busy)
+                            else:
+                                peer.call('move', peer.move_payload(state, count));refresh(root, app)
+                    if scene == 'connection-pause':
+                        offset[0] = 10
+                        refresh(root, app)
+                    elif scene == 'rematch':
+                        app.online_rematch_button.invoke();wait(root, app, lambda: not app.online_busy)
+                        peer.call('rematch', {'ready': True});refresh(root, app)
+                    elif scene == 'online-light':
+                        app.set_theme('light')
             capture(root, scene, app.analysis_window)
             if errors:
                 raise errors[0]
         finally:
             app.close()
+            server.shutdown();server.server_close();thread.join(timeout=2)
 
 
 if __name__ == '__main__':

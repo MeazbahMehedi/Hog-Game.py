@@ -2,6 +2,19 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.5.0 - Private Multiplayer Edition - 2026-10-29
+
+- Added private two-seat rooms with invitation codes, ready status and server-owned dice/scoring.
+- Added synchronized desktop tables, presence indicators, scrollable journals and turn timers.
+- Added zero-dice timeout moves, heartbeat pauses, 90-second seat reservation and reconnect retries.
+- Added match/turn validation, duplicate move protection and retry-safe create/join requests.
+- Added two-player rematch voting with alternating starting seats.
+- Added a bounded standard-library HTTP relay with optional direct TLS and a verified-certificate client.
+- Kept online results separate from local profiles, history, campaign data and standard saves.
+- Fixed destroyed Tk view callback cycles being collected by a background worker.
+- Added 29 checks, bringing the full suite to 236, plus 18 doctest examples and a two-client smoke tool.
+- Added eight actual screenshots, ONLINE.md, cumulative documentation and a rebuilt Linux client.
+
 ## v3.4.0 - Campaign and Customization Edition - 2026-10-29
 
 - Added six sequential campaign stages with named strategy personalities and three objectives each.

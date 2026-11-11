@@ -1,4 +1,4 @@
-# Installation and Native Builds — v3.4.0
+# Installation and Native Builds — v3.5.0
 
 ## Source / Windows, macOS, Linux
 
@@ -54,3 +54,7 @@ Use Campaign in dashboard navigation, then select or create a local profile. Com
 ## Schema-1 Upgrade
 
 On the first normal launch with a schema-1 database, the app creates `hog.sqlite3.v1-backup` beside it unless that backup exists, then migrates in a transaction to schema 2. Existing profiles, standard history, tournaments and manual saves remain intact. If backup installation fails, migration stops and the temporary-storage notice is shown. Earlier releases cannot open schema 2. Keep the pre-upgrade backup if you intend to downgrade; close all Hog windows before copying or restoring a database.
+
+## Private Multiplayer
+
+Run `python hog_server.py` in a separate terminal, then open Online in the desktop. The default client address is `http://127.0.0.1:8765`. Two desktop clients can test one machine. LAN/internet players need a mutually reachable relay; use the setup and HTTPS instructions in [ONLINE.md](ONLINE.md). The Linux native build is a client; the relay runs from Python source. `python tools/network_smoke.py` verifies two local clients without a display.
