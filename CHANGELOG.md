@@ -2,6 +2,19 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.3.0 - Coaching and Challenges Edition - 2026-10-29
+
+- Added a learning hub with live coaching, completed-match decision review, and eight position puzzles.
+- Expanded live advice into an 11-move comparison with expected gains, model win chances, Sow Sad risks and immediate finish probabilities.
+- Added numeric, rule-based explanations and guaranteed-finish opportunity notes.
+- Added worker-based pre-roll reviews with seat filters, gap sorting, learning labels and actual outcomes shown separately.
+- Added tie-aware puzzle checking, retry hints, solution reveals, attempt counts and session-only unassisted solve progress.
+- Added result/replay review links and two-row dashboard navigation in compact windows.
+- Fixed ambiguous match selectors with numbered labels and added scrollable comparison views.
+- Kept schema 1, data paths, saves, original scoring rules and standard-library source play.
+- Added 21 tests for a total of 177 checks, plus 18 doctest examples.
+- Added nine actual screenshots, cumulative documentation, and a rebuilt/tested Linux package.
+
 ## v3.2.0 - Statistics and Replay Edition - 2026-10-29
 
 - Added a statistics workspace with profile identity filters and explicit all-seat scope.

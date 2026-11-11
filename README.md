@@ -1,84 +1,113 @@
 # The Game of Hog
 
-**v3.2.0 · Statistics and Replay Edition · Python 3.10+ / Tkinter**
+**v3.3.0 · Coaching and Challenges Edition · Python 3.10+ / Tkinter**
 
-Play the game, understand your choices, and revisit every turn. This release adds a profile statistics workspace and an interactive replay timeline to the desktop dice strategy game. Everything runs locally with Python and Tkinter; no API, trained model, network service, or extra charting package is needed.
+Choose with a reason. v3.3.0 adds an offline move coach, post-match decision reviews, and eight puzzle challenges to Hog. Learn why dice choices rank differently, separate decision quality from dice luck, and practice finding strong actions in specific positions. The coach uses the existing exact probability policy; it requires no API key, network, trained neural model, or new runtime package.
 
-![Statistics workspace](docs/screenshots/v3.2.0-statistics.png)
+![Live move coach](docs/screenshots/v3.3.0-live-coach.png)
 
-## What's New in v3.2.0
+## What's New in v3.3.0
 
-- **Statistics workspace:** open **Stats** on the dashboard, **Statistics** in Player hub, or **Statistics** after a match.
-- **Profile filters:** inspect one persistent player identity, or deliberately include both recorded seats. The default is the local profile with the most completed matches.
-- **Dice-choice chart:** see how often you chose each count from 0 to 10, plus observed zero-dice turns, Sow Sad turns, and Sus Fuss bonuses.
-- **Opponent results:** played, wins, losses, and sampled win rate against each computer strategy or recorded human opponent.
-- **Personal records:** highest final score, largest turn gain, largest Sus Fuss bonus, largest winning margin, and longest winning streak.
-- **Score progression chart:** both players' recorded scores across every turn, a 100-point guide, factual milestone markers, and a cursor for the selected position.
-- **Interactive timeline:** drag the slider, click the score chart, step through turns, or jump to a key turn.
-- **Replay speeds:** 0.5×, 1×, 2×, and 4× playback, with clear Play/Pause status and clean end-of-match behavior.
-- **Turn explanations:** see the actual dice, Sow Sad or Boar Brawl effects, Sus Fuss adjustment, and score arithmetic.
-- **History validation:** unreadable or inconsistent records are excluded with a count; viewing does not rewrite or delete them.
-- **Release package:** updated screenshots, cumulative documentation, release notes, and a rebuilt Linux desktop executable.
+- **Coaching hub:** a new **Coach** dashboard action links live advice, completed-match reviews, and puzzle challenges.
+- **Expanded live advice:** compare all 11 dice choices by expected points, match-winning model value, Sow Sad risk, and immediate finish chance.
+- **Move explanations:** inspect a considered move, the best available choices, guaranteed zero-dice gain, immediate-gain alternatives, and the model assumptions.
+- **Post-match decision review:** evaluate the position before every recorded roll, filter by seat, and sort by turn or largest model gap.
+- **Opportunity review:** find lower-valued choices and positions where a guaranteed finish was available; actual outcomes are displayed separately.
+- **Eight position puzzles:** submit a dice count, receive feedback, retry, or reveal the full explanation. All numerically tied model-best actions are accepted.
+- **Honest learning progress:** track attempts and unassisted solves during the current app session; revealed answers do not become unassisted solves.
+- **Navigation improvements:** small dashboard windows use two navigation rows. Replay and result screens link directly to decision review.
+- **Match-selection fix:** numbered choices distinguish matches even when timestamps, player names and shortened IDs would look identical.
+- **Release documentation:** nine actual screenshots, archived prior documentation, release notes, and a rebuilt Linux desktop package.
 
-## Explore Your Statistics
+## Use the Coach
 
-Open **Stats** in the dashboard navigation. Choose **Profile / your name** to see that profile's completed desktop games. Profile filtering uses the stored identity, so using a different match display name does not split your statistics. Guest games cannot be retroactively assigned to a profile.
+From the dashboard, open **Coach**. For live help, start a standard match and select **Coach / H** during an active human turn. The existing H shortcut and `show_advice` entry point now open the expanded coach. Paused, completed, computer, and in-flight animation turns do not open live advice.
 
-The **Dice choices** tab counts recorded turns, not recommendations or theoretical probabilities. Mean gain per turn includes the Sus Fuss adjustment. A Sow Sad turn can still receive a later Sus Fuss bonus. Statistics are a snapshot taken when the window opens; close and reopen it after another match to refresh.
+The coach shows a snapshot of the current player's score, opponent score, and turn number. Select a row to consider a different dice count, then open **Explanation**. Selecting a row changes only the coach view; it does not change the main table's dice selection or play a move. Reopen the coach after the position changes to request fresh analysis.
 
-**All recorded seats** deliberately includes humans, guests, and computers. Each valid match contributes two appearances and one win, making its combined win rate 50%. That figure is explicitly labeled and is not an estimate of any player's skill. Per-profile filtering gives a player's own results.
+![Coaching hub](docs/screenshots/v3.3.0-coach-hub.png)
 
-### Opponent Results
+### What the Numbers Mean
 
-Computer opponents are grouped by strategy key, even when their display names differ. Human opponents with profiles are grouped by identity, using the latest recorded display name. Guest opponents are grouped by case-insensitive display name; two people using the same guest name cannot be distinguished.
-
-Win rates describe these recorded games. They are not optimal-policy win probabilities, difficulty guarantees, or statistically significant comparisons. Small samples should be interpreted accordingly.
-
-![Opponent results](docs/screenshots/v3.2.0-opponents.png)
-
-### Personal Records
-
-The **Records** tab reports the selected history's highest final score, largest single-turn gain including bonus, largest individual bonus, largest winning margin, and longest consecutive run of wins. Winning streaks follow completed-match order and require a single profile selection. An empty selection shows dashes rather than fabricated results.
-
-![Personal records](docs/screenshots/v3.2.0-records.png)
-
-## Replay a Match Interactively
-
-Open **Replay** from the dashboard, **Replay viewer** in Player hub, or **Replay** from the result screen. The result-screen action opens that completed match when it is among the latest 100 records.
-
-The chart includes the full match from the start, allowing you to inspect later turns without playing new dice. **Position 0** is the initial 0–0 table. Every other position is the state immediately after that numbered turn. Lines connect recorded positions; the cursor and score heading show the selected state.
-
-![Interactive replay](docs/screenshots/v3.2.0-replay.png)
-
-| Control | Behavior |
+| Figure | Meaning |
 | --- | --- |
-| Timeline slider | Seek to a recorded turn and pause playback. |
-| Score chart click | Jump to the nearest recorded position. |
-| First / Previous / Next / Last | Navigate recorded positions; boundary buttons disable appropriately. |
-| Play / Pause | Begin or pause timed playback. Playing from the end restarts at position 0. |
-| Speed selector | 0.5×, 1×, 2×, or 4×; changing speed reschedules the next playback tick. |
-| Key turn selector | Jump to a largest gain, largest bonus, lead change, or winning turn. |
-| Match selector | Stop playback and load another validated completed match. |
+| Expected gain | Average immediate score increase, including Sus Fuss. |
+| Model win chance | Probability of eventually winning under the standard optimal-play model. |
+| Sow Sad risk | Probability of rolling at least one 1 with the selected dice count. |
+| Finish this turn | Probability the move reaches 100 after applying all scoring rules. |
+| Pre-roll gap | Best available model win probability minus the considered move's value, expressed in percentage points. |
 
-Key turns are factual milestones rather than AI evaluations. Ties do not count as a lead change; the previous non-tied leader is compared with the next non-tied leader. For tied largest gains or bonuses, the earliest occurrence is selected. The explanation below the dice describes the selected event's rules and arithmetic, not whether its dice choice was optimal. Coaching and counterfactual move analysis remain future work.
+The exact policy assumes **fair six-sided dice, goal 100, all three original rules, and optimal play by both players after the evaluated move**. It does not predict a roll or measure performance against the selected human/heuristic opponent. Custom practice rules are outside this model.
 
-Replay viewing performs no new roll, profile update, match insert, or save-slot change. Seeking pauses playback. Closing the window or opening another analysis view cancels its playback timer. Dark, light, and high-contrast themes redraw the charts without changing the selected position or game state.
+The explanation compares immediate points with the objective of winning the match. It also calculates the zero-dice option's base points, Sus Fuss adjustment, resulting score, and guaranteed gain. A guaranteed immediate finish is identified from the modeled outcomes. These are calculations and rule-based explanations, not generated conversation from an LLM.
 
-![Light replay](docs/screenshots/v3.2.0-replay-light.png)
+![Move explanation](docs/screenshots/v3.3.0-coach-explanation.png)
 
-![High-contrast replay](docs/screenshots/v3.2.0-replay-contrast.png)
+## Review a Completed Match
 
-## Data Scope and Compatibility
+Open **Coach > Decision review**, **Review** on the winner screen, or **Review decisions** inside Replay. Choose one of the latest 100 stored records. Invalid records are excluded using the existing validation rules. The result-screen shortcut selects its completed match when that record is in the list.
 
-Statistics validate all stored standard completed desktop matches; the replay selector validates the latest 100 stored records. Practice sessions, terminal games, and tournament simulations remain separate. Earlier standard match records without profile assignments contribute to all-seat statistics but cannot contribute to a named profile.
+The worker reconstructs each turn's **pre-roll position from that player's perspective**, then compares the recorded dice count with every legal alternative. The default filter selects the first human seat, or all seats for a computer-only game. You can select either seat or all seats and sort by **Largest model gap** or **Turn order**.
 
-Repeated match IDs contribute once. Invalid records are excluded with an on-screen count and remain in the database untouched. No valid history produces an informative empty state, not an invented win rate.
+![Decision review](docs/screenshots/v3.3.0-review.png)
 
-![Empty statistics](docs/screenshots/v3.2.0-empty-statistics.png)
+| Assessment | Learning threshold |
+| --- | --- |
+| Model-best | Tied for the highest value within `1e-9` probability tolerance. |
+| Close | Positive gap up to 1 percentage point. |
+| Review | Gap above 1 and up to 5 percentage points. |
+| Large gap | Gap above 5 percentage points. |
 
-The SQLite schema stays at version 1. Existing profiles, settings, manual saves, tournament results, and supported v2.2.0/v3.0.0/v3.1.0 history remain compatible. New charts use Tk Canvas; source play still needs only Python 3.10+ and Tkinter. The main window's standard-text minimum remains 960 × 720; the new statistics/replay windows have a 900 × 720 minimum. Larger text can need more space.
+These thresholds are descriptive learning labels, not a certified skill rating. The summary reports the number of decisions, model-best choices, and mean gap. Gaps from different turns are not summed into an alleged match-loss probability. The mean describes the selected decisions, not a probability that the player lost the match.
 
-Screenshot examples are actual Tk windows showing seeded matches in temporary in-memory storage. No example profile database or personal results are shipped in the ZIP.
+Select a row and open **Selected decision** to inspect the actual dice, base points, bonus and resulting score alongside the pre-roll explanation. A lucky winning roll does not remove an earlier model gap; an unlucky outcome does not make a model-best decision wrong. The review does not branch or simulate an alternative match.
+
+![Selected decision explanation](docs/screenshots/v3.3.0-review-explanation.png)
+
+## Solve Puzzle Challenges
+
+Open **Coach > Puzzle challenges**, or use the button inside Decision review. Choose a position and select 0–10 dice. **Check my move** accepts any action whose model win chance is within `1e-9` of the maximum. An incorrect answer gives a gap and a hint without revealing the best dice count, so you can retry.
+
+![Puzzle challenge](docs/screenshots/v3.3.0-puzzles.png)
+
+| Puzzle | Position: you / opponent | Focus |
+| --- | --- | --- |
+| Take the finish | 98 / 90 | Inspect a guaranteed finish. |
+| A prime opportunity | 14 / 60 | Include Sus Fuss in the comparison. |
+| The opening table | 0 / 0 | Compare opening decisions. |
+| Chasing the leader | 37 / 81 | Choose using match-winning value. |
+| The final stretch | 84 / 92 | Evaluate late-game alternatives. |
+| Read the digits | 61 / 87 | Compare Boar Brawl with rolling. |
+| A level table | 52 / 52 | Find a strong move from equal scores. |
+| One point away | 99 / 99 | Recognize equally strong alternatives. |
+
+Correct answers show the full explanation. **Reveal explanation** also displays it, marking subsequent answers as assisted. Attempts count every submitted answer; an unassisted solve means the answer was accepted before revealing the explanation, and can include retries. **Next puzzle** cycles through the eight positions; you may also select any puzzle directly.
+
+![Solved puzzle](docs/screenshots/v3.3.0-puzzle-solved.png)
+
+Progress survives closing/reopening the puzzle window within the same app session and resets when the application closes. Puzzles do not play matches or affect wins, history, profile achievements, tournament standings, or the manual save slot. Persistent campaign progression and unlockable cosmetics remain future work.
+
+![High-contrast puzzle](docs/screenshots/v3.3.0-puzzle-contrast.png)
+
+## Compatibility and Responsiveness
+
+The SQLite schema remains at version 1, with the same settings and data paths. Existing profiles, saves, history, tournaments, replays, statistics, practice and terminal modes remain available. Live coaching, review calculations and puzzle preparation run in the analysis worker; only the Tk thread updates widgets and accesses SQLite.
+
+Closing or replacing an analysis window cancels its polling callback. Model preparation may finish in the worker for reuse; its abandoned callback does not update the replacement window. New learning windows use scrollable explanation text, and comparison/review tables have vertical scrollbars. Larger text can still need a wider or taller window.
+
+The main window retains the 960 × 720 standard-text minimum. Below 1180 pixels wide, the expanded dashboard navigation uses two rows; wider windows retain the rail. Learning windows have a 900 × 720 minimum.
+
+![Dashboard with coaching navigation](docs/screenshots/v3.3.0-dashboard.png)
+
+The screenshots are actual Tk windows showing seeded example matches and temporary in-memory profiles. Their displayed results are demonstrations, not strategy benchmarks or the user's stored personal history. No demonstration database is shipped.
+
+## Retained from v3.2.0
+
+Profile statistics, observed opponent results, personal records, dice-choice charts, interactive score replays, timeline scrubbing, key turns, adjustable playback speeds, and read-only history validation remain included. Historical screenshots below show those features at introduction.
+
+![Previous statistics workspace](docs/screenshots/v3.2.0-statistics.png)
+
+![Previous replay timeline](docs/screenshots/v3.2.0-replay.png)
 
 ## Retained from v3.1.0
 
@@ -347,7 +376,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v2.2.0 | Profiles, statistics, six achievements, history, exact save/resume, local leaderboard, tournaments, CSV export, and 110 checks. |
 | v3.0.0 | Interactive tutorial, replay navigation, practice settings, accessibility, native Linux build, packaging scripts, and 122 checks. |
 | v3.1.0 | Dashboard navigation, activity/player cards, initial avatars, adaptive layout, scoring breakdown, risk previews, collapsible journal, turn pulse, and 135 checks. |
-| **v3.2.0** | Profile statistics, opponent results, dice-choice charts, records, interactive score timelines, replay speeds, factual turn explanations, and 156 checks. |
+| v3.2.0 | Profile statistics, opponent results, dice-choice charts, records, interactive score timelines, replay speeds, factual turn explanations, and 156 checks. |
+| **v3.3.0** | Expanded move coach, pre-roll decision review, eight model-based puzzles, session learning progress, navigation fixes, and 177 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -363,7 +393,7 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous Showcase Edition](docs/screenshots/v3.0.0-home.png)
 
-Full earlier documentation: [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+Full earlier documentation: [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
@@ -372,6 +402,8 @@ Full earlier documentation: [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/hist
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
+| `hog_coach.py` | Model comparisons, move explanations, pre-roll review and puzzle answer validation |
+| `hog_coach_ui.py` | Learning hub, live coach, decision review, puzzles and session progress |
 | `hog_statistics.py` | Validated history reading, per-profile aggregates, records, milestones, scoring explanations |
 | `hog_insights_ui.py` | Statistics and interactive replay windows, playback and timeline controls |
 | `hog_charts.py` | Canvas dice-choice and score-progression charts |
@@ -400,11 +432,11 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-156 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
+177 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.2.0 is the second release in the new improvement roadmap. Coaching, campaign progression, customization unlocks, and online multiplayer remain proposed future work.
+This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.3.0 is the third release in the new improvement roadmap. Persistent campaign progression, customization unlocks, and online multiplayer remain proposed future work.
 
 ## Credits
 
@@ -412,10 +444,10 @@ Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**. Based on 
 
 ## Architecture and Development Takeaways
 
-Presentation helpers (`hog_dashboard.py`) derive dashboard summaries and scoring labels without modifying match data. The statistics layer validates completed events before aggregating them; replay charts consume those reconstructed states. `hog_insights_ui.py` composes the two analysis windows with the main desktop app, and `hog_charts.py` renders data without external dependencies. Layout, pulse, and scoring callbacks are tracked separately so cosmetic changes cannot advance a match.
+Presentation helpers (`hog_dashboard.py`) derive dashboard summaries and scoring labels without modifying match data. The coaching layer reuses the exact policy and reviews the score pair before each recorded roll. Its puzzle evaluator accepts numerical ties and keeps session progress separate from profile records. The statistics layer validates completed events before aggregating them; replay charts consume those reconstructed states. `hog_insights_ui.py` composes the two analysis windows with the main desktop app, and `hog_charts.py` renders data without external dependencies. Layout, pulse, and scoring callbacks are tracked separately so cosmetic changes cannot advance a match.
 
 The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets or SQLite records.
 
 Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
 
-The original coursework grew into six separately packaged upgrades, followed by the dashboard and statistics releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.
+The original coursework grew into six separately packaged upgrades, followed by the dashboard, statistics and coaching releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

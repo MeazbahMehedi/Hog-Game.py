@@ -1,4 +1,4 @@
-# Installation and Native Builds — v3.2.0
+# Installation and Native Builds — v3.3.0
 
 ## Source / Windows, macOS, Linux
 
@@ -42,3 +42,7 @@ The standard-text minimum is 960 × 720. Below 1180 pixels wide, dashboard navig
 ## Statistics and Replays
 
 Open Stats in dashboard navigation, or Statistics in Player hub. The default profile is the one with the most completed matches. Open Replay to inspect the latest 100 completed desktop records. Both windows require at least 900 × 720 and read existing schema-1 data without migrations. Close and reopen Statistics to refresh its snapshot.
+
+## Coaching and Challenges
+
+Use Coach in dashboard navigation. During a standard human turn, Coach / H opens live explanations. Review on the result screen and Review decisions inside Replay open pre-roll analysis. Puzzle progress is held only for the current app session; it is separate from the database and manual saves. Compact dashboard navigation now uses two rows.

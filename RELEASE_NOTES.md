@@ -1,31 +1,31 @@
 # GitHub Release Details
 
-**Tag:** `v3.2.0`
+**Tag:** `v3.3.0`
 
-**Title:** `v3.2.0 - Statistics and Replay Edition`
+**Title:** `v3.3.0 - Coaching and Challenges Edition`
 
 ## Description
 
-Understand your Hog games with a new statistics workspace and an interactive match replay timeline.
+Learn from your Hog decisions with an expanded offline coach, post-match analysis, and eight position puzzles.
 
 ### What's new
 
-- Profile-specific statistics and explicit all-recorded-seat filtering.
-- Dice-choice charts, rule counts, average turn gains, and per-opponent win rates.
-- Personal records for scores, turn gains, bonuses, winning margins, and win streaks.
-- Replay score progression charts with click-to-seek and a draggable timeline.
-- Playback speeds from 0.5× to 4×, milestone jumps, and factual turn explanations.
-- Validated read-only analysis with invalid-record exclusion notices.
-- Eight new screenshots, cumulative README/changelog, and archived previous documentation.
+- Compare all dice choices by expected gain, model win chance, Sow Sad risk and immediate finish probability.
+- Read explanations for considered moves, zero-dice options, numerical ties and guaranteed finish opportunities.
+- Review completed matches from each player's pre-roll perspective, with seat filters and model-gap sorting.
+- Solve eight puzzles with retries, tie-aware checking, solution reveals, and session learning progress.
+- Open reviews directly from replay and result screens.
+- Use compact two-row navigation and unique numbered match selectors.
+- Updated README, nine actual screenshots, archived previous documentation, and cumulative changelog.
 
-All previous desktop and terminal features remain available. No scoring rules or database schema changed. Statistics use completed standard desktop games; practice and tournament results stay separate. Replay never rolls new dice or modifies history.
+The coach uses the existing exact fair-dice policy under standard rules and optimal continuation by both players. It is not an LLM, a prediction of the next roll, or a measured win rate against a selected opponent. Puzzle progress lasts for the app session; no learning view changes profile results, history, saves, or scoring dice.
 
 ### Run
 
-Extract the ZIP and run `python hog_desktop.py` with Python 3.10+ and Tkinter. A rebuilt Linux x86_64 package is included. Windows users can play from source or build locally with `build-windows.bat`; a Windows executable is not included.
+Extract the ZIP and run `python hog_desktop.py` with Python 3.10+ and Tkinter. A rebuilt Linux x86_64 one-folder package is included. Windows users can play from source or build locally with `build-windows.bat`; no prebuilt Windows executable is included.
 
 ### Validation
 
-156 automated checks and 18 doctest examples passed on Linux. Timed playback, seeking, profile filters, record validation, theme redraws, and storage/RNG isolation are covered. The rebuilt Linux executable passed version and actual-window smoke checks. Windows/macOS native execution and physical audio were not verified.
+177 automated checks and 18 doctest examples passed on Linux. The rebuilt Linux executable passed version and actual-window smoke checks. Windows/macOS native execution and physical audio were not verified.
 
-AI coaching, campaign progression, and online multiplayer remain future releases.
+Persistent campaigns, unlockable cosmetics, and online multiplayer remain future releases.

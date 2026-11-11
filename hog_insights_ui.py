@@ -166,7 +166,8 @@ class InsightsUI:
                 message += f' {skipped} unreadable/inconsistent record(s) excluded.'
             self.label(panel, message, 12, wraplength=900).pack(anchor='w')
             return
-        labels = [f"{match.finished_at} / {' vs '.join(match.config.names)} / {match.identifier[:6]}" for match in matches]
+        labels = [f"{index + 1:02d} / {match.finished_at} / {' vs '.join(match.config.names)} / {match.identifier[:6]}" for index, match in enumerate(matches)]
+        self.replay_labels = tuple(labels)
         chosen = next((i for i, match in enumerate(matches) if match.identifier == match_id), 0)
         self.replay_selection = tk.StringVar(self.root, labels[chosen])
         combo = ttk.Combobox(panel, textvariable=self.replay_selection, values=labels,
@@ -199,6 +200,7 @@ class InsightsUI:
             button.configure(padx=13, pady=8)
             button.pack(side='left', padx=(0, 6))
             self.replay_buttons[text] = button
+        self.button(actions, 'Review decisions', lambda: self.show_review(matches[labels.index(self.replay_selection.get())].identifier), kind='secondary').pack(side='left', padx=6)
         self.replay_speed = tk.StringVar(self.root, '1×')
         speed = ttk.Combobox(actions, textvariable=self.replay_speed, values=tuple(PLAYBACK_DELAYS),
                              width=5, state='readonly', style='Hog.TCombobox')

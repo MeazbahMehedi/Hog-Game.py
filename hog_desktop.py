@@ -29,6 +29,7 @@ from hog_tournament import run_tournament, export_tournament
 from hog_showcase import PracticeRules, tutorial_lessons, replay_states
 from hog_dashboard import initials, turn_breakdown, recent_results
 from hog_insights_ui import InsightsUI
+from hog_coach_ui import CoachUI
 from hog_drawing import draw_die
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
@@ -36,7 +37,7 @@ from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_prefere
 
 
 
-class HogApp(InsightsUI):
+class HogApp(CoachUI, InsightsUI):
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
@@ -79,7 +80,7 @@ class HogApp(InsightsUI):
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Statistics Edition v{VERSION}")
+        root.title(f"Hog | Coaching Edition v{VERSION}")
         height = max(720, min(880, root.winfo_screenheight() - 70))
         root.geometry(f"1280x{height}")
         root.minsize(960, 720)
@@ -451,7 +452,7 @@ class HogApp(InsightsUI):
                 if compact:
                     self.dashboard_nav.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
                     for column, button in enumerate(self.dashboard_buttons):
-                        button.grid(row=0, column=column, sticky="ew", padx=2, pady=3)
+                        button.grid(row=column // 5, column=column % 5, sticky="ew", padx=2, pady=3)
                     self.dashboard_view.grid(row=1, column=0, columnspan=2, sticky="nsew")
                     self.dashboard_frame.rowconfigure(0, weight=0)
                     self.dashboard_frame.rowconfigure(1, weight=1)
@@ -462,7 +463,7 @@ class HogApp(InsightsUI):
                     self.dashboard_nav_title.grid(row=0, column=0, sticky="w", padx=12, pady=(18, 14))
                     for row, button in enumerate(self.dashboard_buttons, 1):
                         button.grid(row=row, column=0, sticky="ew", padx=8, pady=4)
-                    self.dashboard_nav_note.grid(row=10, column=0, sticky="sw", padx=12, pady=18)
+                    self.dashboard_nav_note.grid(row=len(self.dashboard_buttons) + 2, column=0, sticky="sw", padx=12, pady=18)
                     self.dashboard_view.grid(row=0, column=1, sticky="nsew")
                     self.dashboard_frame.rowconfigure(0, weight=1)
                     self.dashboard_frame.rowconfigure(1, weight=0)
@@ -521,11 +522,11 @@ class HogApp(InsightsUI):
                       ("Learn", self.show_tutorial), ("Practice", self.show_practice),
                       ("Players", self.show_player_hub), ("Replay", self.show_replay),
                       ("Tournaments", self.show_tournament), ("Compare", self.show_comparison),
-                      ("Stats", self.show_statistics))
+                      ("Stats", self.show_statistics), ("Coach", self.show_coaching_hub))
         self.dashboard_buttons = []
         for title, command in navigation:
             button = self.button(nav, title, command, kind="primary" if title == "Dashboard" else "secondary")
-            button.configure(padx=10, pady=9)
+            button.configure(padx=10, pady=8)
             self.dashboard_buttons.append(button)
         view = self.dashboard_view = tk.Frame(frame, bg=self.palette.bg)
         scroll = self.dashboard_scroll = tk.Canvas(view, bg=self.palette.bg, highlightthickness=0)
@@ -748,7 +749,7 @@ class HogApp(InsightsUI):
         self.restart_button = self.button(title, "Restart / R", self.restart_match, kind="secondary")
         self.restart_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.restart_button.pack(side="right")
-        self.advice_button = self.button(title, "Move advice / H", self.show_advice, kind="secondary")
+        self.advice_button = self.button(title, "Coach / H", self.show_advice, kind="secondary")
         self.advice_button.configure(pady=5, padx=10, font=(self.family, 9, "bold"))
         self.advice_button.pack(side="right", padx=(0, 8))
         self.pause_button = self.button(title, "Pause / P", self.toggle_pause, kind="secondary")
@@ -1110,6 +1111,7 @@ class HogApp(InsightsUI):
         self.button(actions, "Review final table", self.build_game, kind="secondary").pack(side="left")
         self.button(actions, "Replay", lambda: self.show_replay(self.match_id), kind="secondary").pack(side="left", padx=10)
         self.button(actions, "Statistics", self.show_statistics, kind="secondary").pack(side="left")
+        self.button(actions, "Review", lambda: self.show_review(self.match_id), kind="secondary").pack(side="left", padx=10)
         seed_note = "A fixed seed restarts the same dice sequence on replay." if self.config.seed is not None else "No seed selected: each new match uses a fresh dice sequence."
         self.label(self.body, seed_note, 9, fg=self.palette.muted).pack(anchor="w", pady=(18, 0))
 
@@ -1545,34 +1547,7 @@ class HogApp(InsightsUI):
         callback(result)
 
     def show_advice(self):
-        if (self.screen != "game" or self.session.finished or self.animating or self.paused
-                or not self.config.is_human(self.session.current_player)):
-            return
-        who = self.session.current_player
-        score, opponent = self.session.scores[who], self.session.scores[1 - who]
-        panel = self.analysis_shell("Move advisor")
-        self.label(panel, f"Position: {score} vs {opponent} / advice does not play a move", 10,
-                   fg=self.palette.muted).pack(anchor="w")
-        self.analysis_status = self.label(panel, "Calculating fair-dice probabilities...", 10,
-                                          wraplength=800, fg=self.palette.accent)
-        self.analysis_status.pack(anchor="w", pady=12)
-        chart = tk.Canvas(panel, height=385, bg=self.palette.panel, highlightthickness=0)
-        chart.pack(fill="x")
-        self.label(panel, "Bars show model win chance; not the probability of winning this turn.",
-                   9, fg=self.palette.muted).pack(anchor="w", pady=10)
-
-        def ready(rows):
-            self.analysis_status.configure(text=advice_text(score, opponent, rows))
-            best = max(row.win_probability for row in rows)
-            for index, row in enumerate(rows):
-                y = 15 + index * 32
-                selected = abs(row.win_probability - best) < 1e-12
-                chart.create_text(18, y + 9, text=f"{row.dice:2d} dice", anchor="w", fill=self.palette.text)
-                chart.create_rectangle(90, y, 90 + 500 * row.win_probability, y + 19,
-                                       fill=self.palette.accent if selected else self.palette.border, outline="")
-                chart.create_text(610, y + 9, text=f"{row.win_probability:.1%} | gain {row.expected_gain:.2f}",
-                                  anchor="w", fill=self.palette.text)
-        self.poll_analysis(self.worker.submit(analyze_moves, score, opponent), ready)
+        self.show_coach()
 
     def show_comparison(self):
         panel = self.analysis_shell("Strategy comparison")
@@ -1650,7 +1625,7 @@ class HogApp(InsightsUI):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Statistics Edition")
+    parser = argparse.ArgumentParser(description="Hog Coaching Edition")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--theme", choices=tuple(PALETTES), help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")

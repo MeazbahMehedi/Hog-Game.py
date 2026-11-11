@@ -1,13 +1,13 @@
-# v3.2.0 Validation
+# v3.3.0 Validation
 
-2026-10-29. Source suite: Linux / Python 3.12.14 / Tk 9.0, using a virtual display.
+2026-10-29. Source: Linux / Python 3.12.14 / Tk 9.0 with a virtual display.
 
-156 automated checks passed with all graphical classes enabled. All 18 doctest examples passed. The 21 new checks cover both-seat accounting, identity-based profile filtering, computer/human opponent grouping, chronological win streaks, dice frequencies, scoring milestones, turn explanations, corrupt/legacy/duplicate records, chart-click bounds, active-profile defaults, empty states, actual timed replay playback, speed changes, seeking, restart-at-end, closure, minimum popup layout, theme redraws, and unchanged storage/live RNG.
+177 automated checks passed with graphical tests enabled. All 18 doctest examples passed. The 21 additional checks cover existing-policy agreement, guaranteed and fractional immediate finish probabilities, all legal ties, the eight puzzle positions, invalid input, assumptions/objectives, both players' pre-roll positions, outcome-independent values, read-only/tamper behavior, live coach isolation, review filters/sorting, puzzle retries/reveals/session progress, pending callback cancellation, saved-slot/live RNG preservation, minimum popup controls, and unique match selection.
 
-After the final presentation adjustments, the 21 insights checks were rerun successfully. Existing tests continue to cover simulator equivalence, save/resume RNG state, transaction deduplication, AI policies, practice isolation, tutorials, animation, and terminal controls.
+Nine current screenshots capture actual Tk 8.6 windows. Seeded example records and profiles exist only in memory during capture. No demonstration database or personal gameplay data is included.
 
-Eight current screenshots capture actual Tk 8.6 windows with seeded completed matches and temporary in-memory profiles. They are not generated mockups or measured strategy benchmarks. The supplied release contains no example SQLite database.
+The native Linux x86_64 package was rebuilt with Python 3.12.3, Tk 8.6, PyInstaller 6.22.3 and glibc 2.39. The executable passed version (3.3.0) and actual-window smoke checks. A clean extracted ZIP passed archive integrity, relative Markdown-link checks, all source launcher version checks, doctests, and the native smoke launch. Windows/macOS native execution, older glibc compatibility and physical audio were not verified.
 
-The Linux x86_64 package was rebuilt with Python 3.12.3, Tk 8.6, PyInstaller 6.22.3 and glibc 2.39. Its version is 3.2.0; version and actual-window smoke checks passed. The clean extracted ZIP passed integrity, relative Markdown-link, source launcher version, and native smoke checks. Older glibc compatibility, Windows/macOS native execution, and physical audio were not verified.
+The coach evaluates the standard optimal-play model, not the actual heuristic opponent. Review gaps are pre-roll decision metrics, not hindsight judgments or additive loss probabilities. Puzzle ties use a 1e-9 probability tolerance. Attempt counts include retries; revealed answers do not unlock unassisted solves. Learning progress resets at application exit and is not stored in profile statistics.
 
-SQLite schema 1 and existing data locations remain unchanged. Statistics validate all completed desktop records, while replay offers the latest 100 stored records. Both are read-only snapshots. All-seat win rate is explicitly labeled as 50% by construction, and personal streaks require one profile. No historical record is repaired, deleted, or inferred during analysis.
+No database migration, scoring-rule change, save mutation, new runtime dependency, network request, or new gameplay random-number call is introduced by the learning views.
