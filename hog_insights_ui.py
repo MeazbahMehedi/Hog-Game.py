@@ -236,7 +236,8 @@ class InsightsUI:
             event = state['event']
             if event:
                 for index, value in enumerate(event.outcomes):
-                    draw_die(dice, 18 + index * 64, 10, 48, value, accent=value == 1, palette=self.palette)
+                    draw_die(dice, 18 + index * 64, 10, 48, value, accent=value == 1, palette=self.palette,
+                             skin=self.profile_equipment(self.replay_record["config"].get("profile_ids", (None, None))[event.player])["dice"])
                 if not event.outcomes:
                     dice.create_text(18, 35, text='0 DICE / BOAR BRAWL', anchor='w', fill=self.palette.text,
                                      font=(self.family, 12, 'bold'))

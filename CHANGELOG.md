@@ -2,6 +2,20 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v3.4.0 - Campaign and Customization Edition - 2026-10-29
+
+- Added six sequential campaign stages with named strategy personalities and three objectives each.
+- Added per-profile completed attempts, clear flags and best single-attempt stars.
+- Added a wardrobe with unlock thresholds for three dice colors, two vector avatars and two extra palettes.
+- Applied profile dice/avatar styles to campaign and standard matches and current replay rendering.
+- Added campaign milestone progress bars and compact navigation updates.
+- Kept campaign results separate from standard wins, statistics, history, tournaments and the manual save slot.
+- Added schema-1 backup before transactional migration to schema 2, preserving existing data.
+- Validated fixed stage seeds, opponent decisions, deduplicated runs and earned equipment.
+- Added executable three-star completion certificates for all six stages.
+- Added 30 tests, bringing the suite to 207 checks plus 18 doctest examples.
+- Added nine actual screenshots, cumulative documentation and a rebuilt/tested Linux package.
+
 ## v3.3.0 - Coaching and Challenges Edition - 2026-10-29
 
 - Added a learning hub with live coaching, completed-match decision review, and eight position puzzles.

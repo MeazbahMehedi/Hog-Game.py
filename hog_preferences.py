@@ -39,6 +39,17 @@ PALETTES = {
                         "#b8b8b9", "#fffffe", "#010101", "#303031", "#242425"),
 }
 
+PALETTES.update({
+    "aurora": Palette("#081b22", "#102e37", "#19434f", "#365963", "#efffff",
+                      "#b2d6df", "#5eead4", "#062c2d", "#f5cf83", "#ffadad",
+                      "#7b99a0", "#e6fffb", "#123033", "#031215", "#164f50"),
+    "twilight": Palette("#191329", "#271d3e", "#382950", "#5c4674", "#f6efff",
+                        "#c8b6e0", "#d8b4fe", "#2e124e", "#f9cc8a", "#ffacbc",
+                        "#9685ab", "#faf2ff", "#351b49", "#0d0718", "#46315f"),
+})
+
+BASE_THEMES = ("dark", "light", "contrast")
+
 PACE_DELAYS = {"relaxed": 1200, "normal": 700, "fast": 220}
 
 

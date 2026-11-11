@@ -1,105 +1,128 @@
 # The Game of Hog
 
-**v3.3.0 · Coaching and Challenges Edition · Python 3.10+ / Tkinter**
+**v3.4.0 · Campaign and Customization Edition · Python 3.10+ / Tkinter**
 
-Choose with a reason. v3.3.0 adds an offline move coach, post-match decision reviews, and eight puzzle challenges to Hog. Learn why dice choices rank differently, separate decision quality from dice luck, and practice finding strong actions in specific positions. The coach uses the existing exact probability policy; it requires no API key, network, trained neural model, or new runtime package.
+Six tables. Your own trail. Follow a campaign map, face opponents with distinct playing styles, earn objective stars, and equip cosmetic rewards. Progress and equipment belong to your local profile and survive restarting the app. All previous standard matches, statistics, replays, coaching, puzzles, tournaments and terminal tools remain available.
 
-![Live move coach](docs/screenshots/v3.3.0-live-coach.png)
+![Campaign map](docs/screenshots/v3.4.0-campaign-map.png)
 
-## What's New in v3.3.0
+## What's New in v3.4.0
 
-- **Coaching hub:** a new **Coach** dashboard action links live advice, completed-match reviews, and puzzle challenges.
-- **Expanded live advice:** compare all 11 dice choices by expected points, match-winning model value, Sow Sad risk, and immediate finish chance.
-- **Move explanations:** inspect a considered move, the best available choices, guaranteed zero-dice gain, immediate-gain alternatives, and the model assumptions.
-- **Post-match decision review:** evaluate the position before every recorded roll, filter by seat, and sort by turn or largest model gap.
-- **Opportunity review:** find lower-valued choices and positions where a guaranteed finish was available; actual outcomes are displayed separately.
-- **Eight position puzzles:** submit a dice count, receive feedback, retry, or reveal the full explanation. All numerically tied model-best actions are accepted.
-- **Honest learning progress:** track attempts and unassisted solves during the current app session; revealed answers do not become unassisted solves.
-- **Navigation improvements:** small dashboard windows use two navigation rows. Replay and result screens link directly to decision review.
-- **Match-selection fix:** numbered choices distinguish matches even when timestamps, player names and shortened IDs would look identical.
-- **Release documentation:** nine actual screenshots, archived prior documentation, release notes, and a rebuilt Linux desktop package.
+- **Six-stage campaign:** a clickable progression map with locked, available and cleared tables.
+- **Opponent personalities:** named characters describe six existing deterministic strategy algorithms, from the steady five-dice baseline to optimal-policy play.
+- **Three objectives per stage:** one clear condition and two optional star conditions. Earn up to 18 best stars across the campaign.
+- **Persistent profile progress:** completed attempts, clears and best single-attempt stars are stored separately for each profile.
+- **Wardrobe:** preview and equip earned dice skins, avatar presets, and two new theme palettes.
+- **Cosmetic dice:** classic ivory plus unlockable Cobalt, Ruby and Nebula colors. Sow Sad dice retain their contrasting highlight.
+- **Profile avatars:** initials plus unlockable Panda and Crown vector presets.
+- **Theme rewards:** Aurora teal and Twilight violet, alongside the existing dark, light and high-contrast themes.
+- **Campaign milestones:** five achievements with visible progress bars.
+- **Safe data upgrade:** schema-1 databases get a backup before a transactional upgrade to schema 2. Existing records and manual saves remain intact.
+- **Documentation and packaging:** nine actual current screenshots, cumulative history, release notes and a rebuilt Linux desktop package.
 
-## Use the Coach
+## Start Your Campaign
 
-From the dashboard, open **Coach**. For live help, start a standard match and select **Coach / H** during an active human turn. The existing H shortcut and `show_advice` entry point now open the expanded coach. Paused, completed, computer, and in-flight animation turns do not open live advice.
+Open **Campaign** in the dashboard navigation. Select an existing local profile, or enter a new name and click **Create profile**. The app remembers the selected campaign profile while it remains open. On the map, click a numbered node or use the stage selector to inspect a table and its objectives. Locked stages can be inspected but cannot be started.
 
-The coach shows a snapshot of the current player's score, opponent score, and turn number. Select a row to consider a different dice count, then open **Explanation**. Selecting a row changes only the coach view; it does not change the main table's dice selection or play a move. Reopen the coach after the position changes to request fresh analysis.
+![Fresh campaign](docs/screenshots/v3.4.0-empty-campaign.png)
 
-![Coaching hub](docs/screenshots/v3.3.0-coach-hub.png)
+Stage 1 is initially available. Clearing a stage unlocks the next. A stage's **first objective** is the clear condition: completing the match for First Steps, and winning for every later stage. This means a first-stage loss still opens stage 2. Optional objectives award extra stars only when the clear condition is met in that same attempt.
 
-### What the Numbers Mean
+### The Six Tables
 
-| Figure | Meaning |
+Every campaign match uses the original three rules, a 100-point goal, zero starting scores, a human in seat 0 and a computer in seat 1.
+
+| Stage | Opponent / strategy | Clear condition | Optional star objectives |
+| --- | --- | --- | --- |
+| First Steps | Milo / `always5` | Complete the match | Win; choose zero dice at least once. |
+| Free Points Bay | Nora / `boar` | Win | Choose zero dice at least twice; receive at least one Sus Fuss bonus. |
+| The Pursuit | Dash / `catch-up` | Win | Gain at least 20 points in one turn; finish with at most two Sow Sad turns. |
+| Prime Garden | Iris / `sus` | Win | Receive at least two Sus Fuss bonuses; choose zero dice at least once. |
+| The Calculator | Quinn / `medium` | Win | Finish within ten human turns; win by at least 15 points. |
+| The Summit | Atlas / `hard` | Win | Finish with at most two Sow Sad turns; gain at least 25 points in one turn. |
+
+Single-turn gains include the Sus Fuss adjustment. Turn-count and Sow Sad objectives count the human player's turns only. Opponent personalities are descriptions of existing algorithms, not newly trained agents or guarantees of steadily increasing empirical difficulty.
+
+Each stage uses its own fixed seed, 3401–3406. Repeating the same choices repeats the same dice sequence; changing choices changes which rolls occur on later turns. All six stages have executable three-star completion certificates in the test fixtures, so optional goals have been verified as achievable.
+
+### Play a Stage
+
+Choose 0–10 dice and click **Play selected dice**. Campaign turns resolve immediately. The computer follows its named strategy after the selected computer pace delay. The table shows scores, the last dice, base points, Sus Fuss bonus, and objective status.
+
+![Campaign table](docs/screenshots/v3.4.0-campaign-stage.png)
+
+**Pause** freezes a pending computer turn without consuming dice. **Resume** continues it. Returning to the map or closing an unfinished campaign window asks before abandoning the attempt. Campaign runs do not use the standard game's keyboard shortcuts or manual save slot. Only completed attempts are persisted; quitting the application does not autosave an unfinished campaign.
+
+![Completed stage](docs/screenshots/v3.4.0-campaign-cleared.png)
+
+A completed attempt is inserted once using its unique run ID, after validating its turns against the stage seed, scoring rules and opponent strategy. Reopening the map or redrawing the result cannot duplicate rewards. A replay adds an attempt but never reduces best stars. Stars are the **maximum earned in one attempt per stage**, then summed across stages; you cannot combine two separate two-star runs into a three-star result.
+
+## Equip Earned Cosmetics
+
+Open the **Wardrobe** tab for your campaign profile. You may preview any item. Locked rewards show their required star total and have a disabled Equip button. Earned items can be equipped independently.
+
+![Wardrobe](docs/screenshots/v3.4.0-wardrobe.png)
+
+| Item | Required total best stars |
 | --- | --- |
-| Expected gain | Average immediate score increase, including Sus Fuss. |
-| Model win chance | Probability of eventually winning under the standard optimal-play model. |
-| Sow Sad risk | Probability of rolling at least one 1 with the selected dice count. |
-| Finish this turn | Probability the move reaches 100 after applying all scoring rules. |
-| Pre-roll gap | Best available model win probability minus the considered move's value, expressed in percentage points. |
+| Classic ivory dice, initials avatar, dark/light/high-contrast themes | Available from the start. |
+| Aurora teal theme | 2 |
+| Cobalt blue dice | 3 |
+| Panda avatar | 5 |
+| Ruby red dice | 6 |
+| Twilight violet theme | 9 |
+| Crown avatar | 12 |
+| Nebula violet dice | 15 |
 
-The exact policy assumes **fair six-sided dice, goal 100, all three original rules, and optimal play by both players after the evaluated move**. It does not predict a roll or measure performance against the selected human/heuristic opponent. Custom practice rules are outside this model.
+Dice skins and avatars belong to the profile. They appear on that profile's dashboard cards, standard match score cards and campaign table. Standard and campaign dice use the active player's skin; standard replay dice use the profile's currently equipped skin, not a historical appearance snapshot. Guest and computer seats retain the default style. Avatars are built-in vector presets, not uploaded pictures.
 
-The explanation compares immediate points with the objective of winning the match. It also calculates the zero-dice option's base points, Sus Fuss adjustment, resulting score, and guaranteed gain. A guaranteed immediate finish is identified from the modeled outcomes. These are calculations and rule-based explanations, not generated conversation from an LLM.
+**Equip and apply** saves the profile's chosen theme and applies it globally across the current app. The active palette is also saved in normal appearance preferences and returns on the next launch. Selecting another profile does not automatically change the global palette; apply its theme explicitly in Wardrobe. Settings continues to offer the base themes and the currently applied reward theme; other reward palettes are chosen through Wardrobe.
 
-![Move explanation](docs/screenshots/v3.3.0-coach-explanation.png)
+![Aurora campaign](docs/screenshots/v3.4.0-aurora.png)
 
-## Review a Completed Match
+![Cosmetics in a standard match](docs/screenshots/v3.4.0-cosmetic-game.png)
 
-Open **Coach > Decision review**, **Review** on the winner screen, or **Review decisions** inside Replay. Choose one of the latest 100 stored records. Invalid records are excluded using the existing validation rules. The result-screen shortcut selects its completed match when that record is in the list.
+Cosmetics do not change scoring, dice probabilities, strategies, profile win records or saved RNG state. Appearance previews draw vector shapes and perform no scoring roll. Customization needs no downloaded assets or additional runtime package. This is a local progression system, not a competitive anti-cheat service.
 
-The worker reconstructs each turn's **pre-roll position from that player's perspective**, then compares the recorded dice count with every legal alternative. The default filter selects the first human seat, or all seats for a computer-only game. You can select either seat or all seats and sort by **Largest model gap** or **Turn order**.
+## Track Campaign Milestones
 
-![Decision review](docs/screenshots/v3.3.0-review.png)
+The **Milestones** tab displays persistent per-profile progress bars:
 
-| Assessment | Learning threshold |
+| Milestone | Target |
 | --- | --- |
-| Model-best | Tied for the highest value within `1e-9` probability tolerance. |
-| Close | Positive gap up to 1 percentage point. |
-| Review | Gap above 1 and up to 5 percentage points. |
-| Large gap | Gap above 5 percentage points. |
+| First landing | Clear one stage. |
+| Rising contender | Clear three stages. |
+| Campaign champion | Clear all six stages. |
+| Star collector | Earn nine total best stars. |
+| Perfect trail | Earn all eighteen best stars. |
 
-These thresholds are descriptive learning labels, not a certified skill rating. The summary reports the number of decisions, model-best choices, and mean gap. Gaps from different turns are not summed into an alleged match-loss probability. The mean describes the selected decisions, not a probability that the player lost the match.
+![Campaign milestones](docs/screenshots/v3.4.0-milestones.png)
 
-Select a row and open **Selected decision** to inspect the actual dice, base points, bonus and resulting score alongside the pre-roll explanation. A lucky winning roll does not remove an earlier model gap; an unlucky outcome does not make a model-best decision wrong. The review does not branch or simulate an alternative match.
+These campaign milestones are separate from the six existing standard-match profile achievements. The v3.3.0 position puzzles retain their session-only learning progress; campaign progression is the new persistent system.
 
-![Selected decision explanation](docs/screenshots/v3.3.0-review-explanation.png)
+## Data Upgrade and Compatibility
 
-## Solve Puzzle Challenges
+The first normal launch against a schema-1 database creates **`hog.sqlite3.v1-backup`** beside the existing database, unless that backup already exists. It uses SQLite's backup operation and installs the backup before migration. If backup creation fails, the upgrade does not proceed. New campaign tables and schema version 2 are installed in a transaction; failures roll back and are reported through the existing temporary-storage fallback notice.
 
-Open **Coach > Puzzle challenges**, or use the button inside Decision review. Choose a position and select 0–10 dice. **Check my move** accepts any action whose model win chance is within `1e-9` of the maximum. An incorrect answer gives a gap and a hint without revealing the best dice count, so you can retry.
+The existing database, settings paths, profiles, standard history, tournaments and manual save format remain supported. The SQL database version becomes **2**; the standard saved-match JSON format remains **1**. Earlier Hog releases cannot open schema 2. Keep the pre-upgrade backup if you intend to return to an older version, and close the app before copying or restoring database files. An existing backup is not overwritten.
 
-![Puzzle challenge](docs/screenshots/v3.3.0-puzzles.png)
+Campaign data lives in `campaign_runs` and `profile_cosmetics`. Campaign attempts do **not** enter standard match history, the local wins leaderboard, standard CSV exports, or standard statistics/replay/decision-review selectors. Those selectors continue to cover standard desktop matches. Completing campaign stages never replaces or clears the standard manual save slot. No cloud account or synchronization is added.
 
-| Puzzle | Position: you / opponent | Focus |
-| --- | --- | --- |
-| Take the finish | 98 / 90 | Inspect a guaranteed finish. |
-| A prime opportunity | 14 / 60 | Include Sus Fuss in the comparison. |
-| The opening table | 0 / 0 | Compare opening decisions. |
-| Chasing the leader | 37 / 81 | Choose using match-winning value. |
-| The final stretch | 84 / 92 | Evaluate late-game alternatives. |
-| Read the digits | 61 / 87 | Compare Boar Brawl with rolling. |
-| A level table | 52 / 52 | Find a strong move from equal scores. |
-| One point away | 99 / 99 | Recognize equally strong alternatives. |
+The main standard-text minimum remains 960 × 720; analysis and campaign windows support 900 × 720 with larger text sometimes needing more space. The dashboard keeps two compact navigation rows. No required runtime dependency is added.
 
-Correct answers show the full explanation. **Reveal explanation** also displays it, marking subsequent answers as assisted. Attempts count every submitted answer; an unassisted solve means the answer was accepted before revealing the explanation, and can include retries. **Next puzzle** cycles through the eight positions; you may also select any puzzle directly.
+![Dashboard with campaign navigation](docs/screenshots/v3.4.0-dashboard.png)
 
-![Solved puzzle](docs/screenshots/v3.3.0-puzzle-solved.png)
+Screenshots show actual Tk windows and real seeded completions in temporary in-memory profiles. No example database, personal results or unlocked equipment are shipped as user data.
 
-Progress survives closing/reopening the puzzle window within the same app session and resets when the application closes. Puzzles do not play matches or affect wins, history, profile achievements, tournament standings, or the manual save slot. Persistent campaign progression and unlockable cosmetics remain future work.
+## Retained from v3.3.0
 
-![High-contrast puzzle](docs/screenshots/v3.3.0-puzzle-contrast.png)
+The expanded live coach, pre-roll decision reviews, eight model-based puzzles, numeric explanations, tie-aware answers and session-only puzzle progress remain available. Standard-rule coaching still assumes optimal continuation by both players and cannot predict dice luck.
 
-## Compatibility and Responsiveness
+![Previous coach](docs/screenshots/v3.3.0-live-coach.png)
 
-The SQLite schema remains at version 1, with the same settings and data paths. Existing profiles, saves, history, tournaments, replays, statistics, practice and terminal modes remain available. Live coaching, review calculations and puzzle preparation run in the analysis worker; only the Tk thread updates widgets and accesses SQLite.
+![Previous decision review](docs/screenshots/v3.3.0-review.png)
 
-Closing or replacing an analysis window cancels its polling callback. Model preparation may finish in the worker for reuse; its abandoned callback does not update the replacement window. New learning windows use scrollable explanation text, and comparison/review tables have vertical scrollbars. Larger text can still need a wider or taller window.
-
-The main window retains the 960 × 720 standard-text minimum. Below 1180 pixels wide, the expanded dashboard navigation uses two rows; wider windows retain the rail. Learning windows have a 900 × 720 minimum.
-
-![Dashboard with coaching navigation](docs/screenshots/v3.3.0-dashboard.png)
-
-The screenshots are actual Tk windows showing seeded example matches and temporary in-memory profiles. Their displayed results are demonstrations, not strategy benchmarks or the user's stored personal history. No demonstration database is shipped.
+![Previous puzzles](docs/screenshots/v3.3.0-puzzle-solved.png)
 
 ## Retained from v3.2.0
 
@@ -243,7 +266,7 @@ Standings sort by wins, then total point difference, then strategy name. Bars sh
 
 ### Local Data and Backups
 
-The normal desktop launcher stores `hog.sqlite3` beside `settings.json` in the platform's Hog configuration directory listed below. The database holds profiles, completed desktop matches, one save slot, and tournament results. There is no cloud synchronization or telemetry. Close the app before copying this database for backup or transfer. A clean release ZIP contains no personal database or demo profiles.
+The normal desktop launcher stores `hog.sqlite3` beside `settings.json` in the platform's Hog configuration directory listed below. The database holds profiles, completed desktop matches, one save slot, tournament results, campaign attempts, and profile cosmetics. There is no cloud synchronization or telemetry. Close the app before copying this database for backup or transfer. A clean release ZIP contains no personal database or demo profiles.
 
 If the database cannot be opened, the app shows a notice in Player hub and uses temporary in-memory storage for that session; existing data is not replaced. Save and history failures are reported without changing game rules. Profiles currently cannot be renamed or deleted through the interface.
 
@@ -377,7 +400,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v3.0.0 | Interactive tutorial, replay navigation, practice settings, accessibility, native Linux build, packaging scripts, and 122 checks. |
 | v3.1.0 | Dashboard navigation, activity/player cards, initial avatars, adaptive layout, scoring breakdown, risk previews, collapsible journal, turn pulse, and 135 checks. |
 | v3.2.0 | Profile statistics, opponent results, dice-choice charts, records, interactive score timelines, replay speeds, factual turn explanations, and 156 checks. |
-| **v3.3.0** | Expanded move coach, pre-roll decision review, eight model-based puzzles, session learning progress, navigation fixes, and 177 checks. |
+| v3.3.0 | Expanded move coach, pre-roll decision review, eight model-based puzzles, session learning progress, navigation fixes, and 177 checks. |
+| **v3.4.0** | Six-stage persistent campaign, objective stars, opponent personalities, wardrobe, dice/avatar/theme rewards, milestone bars, schema-2 migration/backup, and 207 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -393,7 +417,7 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous Showcase Edition](docs/screenshots/v3.0.0-home.png)
 
-Full earlier documentation: [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+Full earlier documentation: [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
@@ -402,6 +426,9 @@ Full earlier documentation: [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/hist
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
+| `hog_campaign.py` | Stage catalog, objective evaluation, unlock thresholds and milestone targets |
+| `hog_campaign_storage.py` | Validated campaign runs, persistent best progress and profile equipment |
+| `hog_campaign_ui.py` | Campaign map, stage matches, wardrobe and milestones |
 | `hog_coach.py` | Model comparisons, move explanations, pre-roll review and puzzle answer validation |
 | `hog_coach_ui.py` | Learning hub, live coach, decision review, puzzles and session progress |
 | `hog_statistics.py` | Validated history reading, per-profile aggregates, records, milestones, scoring explanations |
@@ -432,11 +459,11 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-177 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
+207 checks passed on Python 3.12.14 / Tk 9.0 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.3.0 is the third release in the new improvement roadmap. Persistent campaign progression, customization unlocks, and online multiplayer remain proposed future work.
+This edition does not include online play, cloud accounts, or a prebuilt Windows/macOS executable. v3.4.0 is the fourth release in the new improvement roadmap. Online multiplayer and the final distribution-polish release remain future work.
 
 ## Credits
 
@@ -444,10 +471,12 @@ Original project and adaptive strategy: **Md Meazbah Mehedi Prodhan**. Based on 
 
 ## Architecture and Development Takeaways
 
+Campaign rules, persistence and presentation are split across three focused modules. Stage results are validated before they unlock profile cosmetics; campaign attempts have a separate lifecycle from standard saved matches.
+
 Presentation helpers (`hog_dashboard.py`) derive dashboard summaries and scoring labels without modifying match data. The coaching layer reuses the exact policy and reviews the score pair before each recorded roll. Its puzzle evaluator accepts numerical ties and keeps session progress separate from profile records. The statistics layer validates completed events before aggregating them; replay charts consume those reconstructed states. `hog_insights_ui.py` composes the two analysis windows with the main desktop app, and `hog_charts.py` renders data without external dependencies. Layout, pulse, and scoring callbacks are tracked separately so cosmetic changes cannot advance a match.
 
 The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets or SQLite records.
 
 Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
 
-The original coursework grew into six separately packaged upgrades, followed by the dashboard, statistics and coaching releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.
+The original coursework grew into six separately packaged upgrades, followed by dashboard, statistics, coaching, and campaign releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

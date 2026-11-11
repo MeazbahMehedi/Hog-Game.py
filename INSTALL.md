@@ -1,4 +1,4 @@
-# Installation and Native Builds — v3.3.0
+# Installation and Native Builds — v3.4.0
 
 ## Source / Windows, macOS, Linux
 
@@ -41,8 +41,16 @@ The standard-text minimum is 960 × 720. Below 1180 pixels wide, dashboard navig
 
 ## Statistics and Replays
 
-Open Stats in dashboard navigation, or Statistics in Player hub. The default profile is the one with the most completed matches. Open Replay to inspect the latest 100 completed desktop records. Both windows require at least 900 × 720 and read existing schema-1 data without migrations. Close and reopen Statistics to refresh its snapshot.
+Open Stats in dashboard navigation, or Statistics in Player hub. The default profile is the one with the most completed matches. Open Replay to inspect the latest 100 completed desktop records. Both windows require at least 900 × 720 and read standard records from the current database. Close and reopen Statistics to refresh its snapshot.
 
 ## Coaching and Challenges
 
 Use Coach in dashboard navigation. During a standard human turn, Coach / H opens live explanations. Review on the result screen and Review decisions inside Replay open pre-roll analysis. Puzzle progress is held only for the current app session; it is separate from the database and manual saves. Compact dashboard navigation now uses two rows.
+
+## Campaign and Cosmetics
+
+Use Campaign in dashboard navigation, then select or create a local profile. Completed stages and equipped dice/avatar items persist. Wardrobe theme choices apply globally and persist in appearance preferences. In-progress campaign matches are not resumable; the standard manual save slot is independent.
+
+## Schema-1 Upgrade
+
+On the first normal launch with a schema-1 database, the app creates `hog.sqlite3.v1-backup` beside it unless that backup exists, then migrates in a transaction to schema 2. Existing profiles, standard history, tournaments and manual saves remain intact. If backup installation fails, migration stops and the temporary-storage notice is shown. Earlier releases cannot open schema 2. Keep the pre-upgrade backup if you intend to downgrade; close all Hog windows before copying or restoring a database.

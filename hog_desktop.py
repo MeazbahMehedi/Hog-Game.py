@@ -30,14 +30,15 @@ from hog_showcase import PracticeRules, tutorial_lessons, replay_states
 from hog_dashboard import initials, turn_breakdown, recent_results
 from hog_insights_ui import InsightsUI
 from hog_coach_ui import CoachUI
-from hog_drawing import draw_die
+from hog_campaign_ui import CampaignUI
+from hog_drawing import draw_die, draw_avatar
 from hog_audio import SoundPlayer
-from hog_preferences import (PALETTES, PACE_DELAYS, Preferences, default_preferences_path,
+from hog_preferences import (PALETTES, BASE_THEMES, PACE_DELAYS, Preferences, default_preferences_path,
                              load_preferences, save_preferences)
 
 
 
-class HogApp(CoachUI, InsightsUI):
+class HogApp(CampaignUI, CoachUI, InsightsUI):
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
@@ -80,7 +81,7 @@ class HogApp(CoachUI, InsightsUI):
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Coaching Edition v{VERSION}")
+        root.title(f"Hog | Campaign Edition v{VERSION}")
         height = max(720, min(880, root.winfo_screenheight() - 70))
         root.geometry(f"1280x{height}")
         root.minsize(960, 720)
@@ -265,6 +266,7 @@ class HogApp(CoachUI, InsightsUI):
                 recolor(child)
 
         recolor(self.root)
+        self.refresh_profile_art()
         style = ttk.Style(self.root)
         style.configure("Hog.TCombobox", fieldbackground=new.bg, background=new.raised,
                         foreground=new.text, arrowcolor=new.accent)
@@ -341,7 +343,7 @@ class HogApp(CoachUI, InsightsUI):
         self.label(inner, "Settings & shortcuts", 25, bold=True).pack(anchor="w", pady=(8, 18))
         self.label(inner, "Theme", 11, bold=True).pack(anchor="w", pady=(0, 7))
         self.settings_theme = tk.StringVar(self.root, self.preferences.theme)
-        theme = ttk.Combobox(inner, textvariable=self.settings_theme, values=tuple(PALETTES),
+        theme = ttk.Combobox(inner, textvariable=self.settings_theme, values=BASE_THEMES + (() if self.preferences.theme in BASE_THEMES else (self.preferences.theme,)),
                              state="readonly", style="Hog.TCombobox")
         theme.pack(fill="x", pady=(0, 15))
         theme.bind("<<ComboboxSelected>>", lambda _event: self.set_theme(self.settings_theme.get()))
@@ -422,12 +424,10 @@ class HogApp(CoachUI, InsightsUI):
             return None
         return "break"
 
-    def avatar(self, parent, name, player=0, size=42):
+    def avatar(self, parent, name, player=0, size=42, *, profile_id=None):
         canvas = tk.Canvas(parent, width=size, height=size, bg=parent.cget("bg"), highlightthickness=0)
-        color = self.palette.accent if player == 0 else self.palette.gold
-        canvas.create_oval(1, 1, size - 1, size - 1, fill=self.palette.raised, outline=color, width=2)
-        canvas.create_text(size / 2, size / 2, text=initials(name), fill=color,
-                           font=(self.family, 12, "bold"))
+        canvas._hog_avatar = (name, player, size, profile_id)
+        draw_avatar(canvas, name, size, self.palette, player, self.profile_equipment(profile_id)['avatar'])
         return canvas
 
     def _queue_layout(self, event=None):
@@ -452,7 +452,7 @@ class HogApp(CoachUI, InsightsUI):
                 if compact:
                     self.dashboard_nav.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
                     for column, button in enumerate(self.dashboard_buttons):
-                        button.grid(row=column // 5, column=column % 5, sticky="ew", padx=2, pady=3)
+                        button.grid(row=column // 6, column=column % 6, sticky="ew", padx=2, pady=3)
                     self.dashboard_view.grid(row=1, column=0, columnspan=2, sticky="nsew")
                     self.dashboard_frame.rowconfigure(0, weight=0)
                     self.dashboard_frame.rowconfigure(1, weight=1)
@@ -522,11 +522,12 @@ class HogApp(CoachUI, InsightsUI):
                       ("Learn", self.show_tutorial), ("Practice", self.show_practice),
                       ("Players", self.show_player_hub), ("Replay", self.show_replay),
                       ("Tournaments", self.show_tournament), ("Compare", self.show_comparison),
-                      ("Stats", self.show_statistics), ("Coach", self.show_coaching_hub))
+                      ("Stats", self.show_statistics), ("Coach", self.show_coaching_hub),
+                      ("Campaign", self.show_campaign))
         self.dashboard_buttons = []
         for title, command in navigation:
             button = self.button(nav, title, command, kind="primary" if title == "Dashboard" else "secondary")
-            button.configure(padx=10, pady=8)
+            button.configure(padx=10, pady=6)
             self.dashboard_buttons.append(button)
         view = self.dashboard_view = tk.Frame(frame, bg=self.palette.bg)
         scroll = self.dashboard_scroll = tk.Canvas(view, bg=self.palette.bg, highlightthickness=0)
@@ -598,7 +599,7 @@ class HogApp(CoachUI, InsightsUI):
         for index, profile in enumerate(profiles[:2]):
             row = tk.Frame(players, bg=self.palette.panel)
             row.pack(fill="x", padx=16, pady=4)
-            self.avatar(row, profile["name"], index, 34).pack(side="left", padx=(0, 10))
+            self.avatar(row, profile["name"], index, 34, profile_id=profile["id"]).pack(side="left", padx=(0, 10))
             self.label(row, profile["name"], 11, bold=True).pack(side="left")
             self.label(row, f'{profile["wins"]} wins / {profile["played"]} played', 9, fg=self.palette.muted).pack(side="right")
         self.button(players, "Manage players", self.show_player_hub, kind="secondary").pack(anchor="w", padx=16, pady=(4, 12))
@@ -767,7 +768,7 @@ class HogApp(CoachUI, InsightsUI):
             inside.pack(fill="x", padx=22, pady=14)
             top = tk.Frame(inside, bg=self.palette.panel)
             top.pack(fill="x")
-            self.avatar(top, self.config.names[player], player, 36).pack(side="left", padx=(0, 10))
+            self.avatar(top, self.config.names[player], player, 36, profile_id=self.config.profile_ids[player]).pack(side="left", padx=(0, 10))
             self.label(top, self.config.names[player], 15, bold=True).pack(side="left")
             active = self.label(top, "", 9, fg=self.palette.accent)
             active.pack(side="right")
@@ -872,7 +873,7 @@ class HogApp(CoachUI, InsightsUI):
             for index, value in enumerate(self._visual_outcomes):
                 phase = self._animation_frame * .8 + index
                 draw_die(canvas, start + index * spacing, 20 + math.sin(phase) * 5,
-                         size, value, palette=self.palette, angle=math.sin(phase) * 13)
+                         size, value, palette=self.palette, angle=math.sin(phase) * 13, skin=self.seat_skin(self.session.current_player))
             text = "PAUSED / roll animation held" if self.paused else "ROLLING / preview faces only"
             canvas.create_text(width / 2, 94, text=text, fill=self.palette.muted,
                                font=(self.family, 9, "bold"))
@@ -893,7 +894,7 @@ class HogApp(CoachUI, InsightsUI):
         spacing = size + 9
         start = max(0, (width - (count * spacing - 9)) / 2)
         for index, value in enumerate(event.outcomes):
-            draw_die(canvas, start + index * spacing, 18, size, value, accent=value == 1, palette=self.palette)
+            draw_die(canvas, start + index * spacing, 18, size, value, accent=value == 1, palette=self.palette, skin=self.seat_skin(event.player))
 
     def select_count(self, count):
         if (self.screen == "game" and not self.paused and not self.animating
@@ -1625,9 +1626,9 @@ class HogApp(CoachUI, InsightsUI):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Coaching Edition")
+    parser = argparse.ArgumentParser(description="Hog Campaign Edition")
     parser.add_argument("--version", action="version", version=VERSION)
-    parser.add_argument("--theme", choices=tuple(PALETTES), help="override the saved theme for launch")
+    parser.add_argument("--theme", choices=BASE_THEMES, help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")
     parser.add_argument("--mute", action="store_true", help="start with sound disabled")
     parser.add_argument("--smoke-test", action="store_true", help="briefly open a window using temporary data, then exit")

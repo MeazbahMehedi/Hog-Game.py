@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from hog import GameSession, TurnEvent, seeded_dice, sus_update
 from hog_match import MatchConfig
+from hog_campaign_storage import CampaignStorage
 
 
 def timestamp():
@@ -77,31 +78,60 @@ def restore_snapshot(payload):
         raise ValueError("Invalid saved-game data.") from error
 
 
-class Store:
+class Store(CampaignStorage):
     def __init__(self, path=None):
         if path is not None:
             path = Path(path)
             path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(str(path) if path is not None else ":memory:")
-        if self.connection.execute("PRAGMA user_version").fetchone()[0] > 1:
+        version = self.connection.execute("PRAGMA user_version").fetchone()[0]
+        if version > 2:
             self.connection.close()
             raise sqlite3.DatabaseError("This database was created by a newer Hog version.")
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
-        self.connection.executescript("""
-            CREATE TABLE IF NOT EXISTS profiles(
-                id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT UNIQUE NOT NULL,
-                created_at TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS matches(
-                id TEXT PRIMARY KEY, finished_at TEXT NOT NULL, payload TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS players(
-                match_id TEXT REFERENCES matches(id), seat INTEGER, profile_id TEXT REFERENCES profiles(id),
-                name TEXT, score INTEGER, won INTEGER, turns INTEGER, zeros INTEGER,
-                bonuses INTEGER, sow INTEGER, PRIMARY KEY(match_id, seat));
-            CREATE TABLE IF NOT EXISTS saves(slot INTEGER PRIMARY KEY, updated_at TEXT, payload TEXT);
-            CREATE TABLE IF NOT EXISTS tournaments(id TEXT PRIMARY KEY, created_at TEXT, payload TEXT);
-            PRAGMA user_version = 1;
-        """)
+        try:
+            if version == 1 and path is not None:
+                backup = Path(str(path) + ".v1-backup")
+                if not backup.exists():
+                    temporary = Path(str(backup) + "." + uuid4().hex)
+                    try:
+                        target = sqlite3.connect(temporary)
+                        try:
+                            self.connection.backup(target)
+                        finally:
+                            target.close()
+                        temporary.replace(backup)
+                    finally:
+                        temporary.unlink(missing_ok=True)
+            self.connection.executescript("""
+                BEGIN IMMEDIATE;
+                CREATE TABLE IF NOT EXISTS profiles(
+                    id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT UNIQUE NOT NULL,
+                    created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS matches(
+                    id TEXT PRIMARY KEY, finished_at TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS players(
+                    match_id TEXT REFERENCES matches(id), seat INTEGER, profile_id TEXT REFERENCES profiles(id),
+                    name TEXT, score INTEGER, won INTEGER, turns INTEGER, zeros INTEGER,
+                    bonuses INTEGER, sow INTEGER, PRIMARY KEY(match_id, seat));
+                CREATE TABLE IF NOT EXISTS saves(slot INTEGER PRIMARY KEY, updated_at TEXT, payload TEXT);
+                CREATE TABLE IF NOT EXISTS tournaments(id TEXT PRIMARY KEY, created_at TEXT, payload TEXT);
+                CREATE TABLE IF NOT EXISTS campaign_runs(
+                    id TEXT PRIMARY KEY, profile_id TEXT NOT NULL REFERENCES profiles(id),
+                    stage_id TEXT NOT NULL, finished_at TEXT NOT NULL,
+                    stars INTEGER NOT NULL CHECK(stars BETWEEN 0 AND 3),
+                    cleared INTEGER NOT NULL CHECK(cleared IN (0,1)), payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS profile_cosmetics(
+                    profile_id TEXT PRIMARY KEY REFERENCES profiles(id),
+                    dice TEXT NOT NULL, avatar TEXT NOT NULL, theme TEXT NOT NULL);
+                PRAGMA user_version = 2;
+                COMMIT;
+            """)
+        except (OSError, sqlite3.Error):
+            self.connection.rollback()
+            self.connection.close()
+            raise
 
     def close(self):
         self.connection.close()

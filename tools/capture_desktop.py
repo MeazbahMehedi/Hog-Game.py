@@ -1,4 +1,4 @@
-"""Capture actual v3.3.0 Tk windows. Optional capture dependency: Pillow.
+"""Capture actual v3.4.0 Tk windows. Optional capture dependency: Pillow.
 
 Run on a graphical desktop: python tools/capture_desktop.py
 All example data is held in memory; nothing is added to the user's database.
@@ -7,6 +7,8 @@ All example data is held in memory; nothing is added to the user's database.
 from pathlib import Path
 import sys
 import subprocess
+import json
+from uuid import uuid4
 from PIL import ImageGrab
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,6 +17,7 @@ from hog import GameSession, STRATEGIES, VERSION, seeded_dice
 from hog_desktop import HogApp, tk
 from hog_match import MatchConfig
 from hog_preferences import Preferences
+from hog_campaign import stages
 
 
 def capture(root, name, target=None):
@@ -44,24 +47,38 @@ def capture(root, name, target=None):
     print(path.name)
 
 
-def seed_examples(app):
-    own = app.store.create_profile('Meazbah')
-    other = app.store.create_profile('Alex')
-    for seed in range(42, 54):
-        opponent = ('always5', 'always6', 'catch-up', 'medium')[seed % 4]
-        config = MatchConfig(1, ('Meazbah', opponent), ('adaptive', opponent), seed, (own, None))
-        session = GameSession(dice=seeded_dice(seed))
+CERTIFICATES = json.loads((ROOT / 'tests/fixtures/campaign_three_stars.json').read_text())
+
+
+def seed_examples(app, identifier, completed=2):
+    for stage in stages()[:completed]:
+        choices = iter(CERTIFICATES[stage.identifier])
+        session = GameSession(dice=seeded_dice(stage.seed))
         events = []
         while not session.finished:
-            who = session.current_player
-            count = (session.turn_number * 3 + seed) % 11 if who == 0 else STRATEGIES[opponent][0](session.scores[1], session.scores[0])
+            count = next(choices) if session.current_player == 0 else STRATEGIES[stage.strategy][0](session.scores[1], session.scores[0])
             events.append(session.advance(count))
-        app.store.record_match(f'capture-{seed}', config, session, events)
-    return own
+        app.store.record_campaign(uuid4().hex, identifier, stage.identifier, events)
+
+
+def drive_campaign(app, turns=None):
+    choices = iter(CERTIFICATES[app.campaign_stage.identifier])
+    while not app.campaign_session.finished and (turns is None or len(app.campaign_events) < turns):
+        if app.analysis_pending is not None:
+            app.root.after_cancel(app.analysis_pending)
+            app.analysis_pending = None
+        if app.campaign_session.current_player == 0:
+            app.campaign_count_buttons[next(choices)].invoke()
+            app.campaign_roll_button.invoke()
+        else:
+            app.campaign_cpu()
+    if app.analysis_pending is not None:
+        app.root.after_cancel(app.analysis_pending)
+        app.analysis_pending = None
 
 
 def main():
-    scenes = ('dashboard', 'coach-hub', 'live-coach', 'coach-explanation', 'review', 'review-explanation', 'puzzles', 'puzzle-solved', 'puzzle-contrast')
+    scenes = ('dashboard', 'campaign-map', 'campaign-stage', 'campaign-cleared', 'wardrobe', 'milestones', 'aurora', 'cosmetic-game', 'empty-campaign')
     if len(sys.argv) == 1:
         for scene in scenes:
             subprocess.run([sys.executable, __file__, scene], check=True)
@@ -76,45 +93,42 @@ def main():
         root.geometry('1280x880+20+20')
         root.update()
         try:
-            seed_examples(app)
-            app.show_home()
-            if scene == 'coach-hub':
-                app.show_coaching_hub()
-            elif scene in ('live-coach', 'coach-explanation'):
-                app.start_match(MatchConfig(2, ('Meazbah', 'Alex'), seed=42))
-                for _ in range(8):
-                    app.complete_turn((app.session.turn_number * 3) % 11)
-                app.select_count(7)
-                app.show_coach()
-            elif scene in ('review', 'review-explanation'):
-                app.show_review()
-            elif scene.startswith('puzzle'):
-                app.show_puzzles()
-                if scene == 'puzzle-contrast':
-                    app.set_theme('contrast')
-            if scene not in ('dashboard', 'coach-hub'):
-                def ready():
-                    if app.analysis_pending is None:
-                        root.quit()
-                    else:
-                        root.after(15, ready)
-                root.after(15, ready)
-                timeout = root.after(10000, root.quit)
-                root.mainloop()
-                root.after_cancel(timeout)
-                if app.analysis_pending is not None:
-                    raise RuntimeError('Analysis timed out during capture')
-            if scene in ('coach-explanation', 'review-explanation'):
-                # Select the actual explanation notebook tab.
-                def select_explanation(widget):
-                    if widget.winfo_class() == 'TNotebook':
-                        widget.select(1)
-                        return True
-                    return any(select_explanation(child) for child in widget.winfo_children())
-                select_explanation(app.analysis_window)
-            if scene in ('puzzle-solved', 'puzzle-contrast'):
-                app.puzzle_buttons[app.puzzle_report.recommended].invoke()
-                app.puzzle_submit.invoke()
+            if scene == 'empty-campaign':
+                app.show_campaign()
+            else:
+                identifier = app.store.create_profile('Meazbah')
+                other = app.store.create_profile('Alex')
+                completed = 6 if scene in ('wardrobe', 'milestones', 'cosmetic-game', 'aurora') else 0 if scene == 'campaign-cleared' else 2
+                seed_examples(app, identifier, completed)
+                app.show_home()
+                if scene in ('campaign-map', 'wardrobe', 'milestones', 'aurora'):
+                    app.show_campaign(identifier)
+                    if scene == 'wardrobe':
+                        app.store.equip_cosmetic(identifier, 'dice', 'nebula')
+                        app.store.equip_cosmetic(identifier, 'avatar', 'panda')
+                        app.store.equip_cosmetic(identifier, 'theme', 'twilight')
+                        app.set_theme('twilight')
+                        app.show_campaign(identifier)
+                        page = app.campaign_tabs['Wardrobe'];page.master.select(page)
+                    elif scene == 'milestones':
+                        page = app.campaign_tabs['Milestones'];page.master.select(page)
+                    elif scene == 'aurora':
+                        app.store.equip_cosmetic(identifier, 'theme', 'aurora')
+                        app.set_theme('aurora')
+                elif scene == 'campaign-stage':
+                    app.start_campaign_stage(identifier, 'the-pursuit')
+                    drive_campaign(app, 6)
+                elif scene == 'campaign-cleared':
+                    app.start_campaign_stage(identifier, 'first-steps')
+                    drive_campaign(app)
+                elif scene == 'cosmetic-game':
+                    app.store.equip_cosmetic(identifier, 'dice', 'nebula')
+                    app.store.equip_cosmetic(identifier, 'avatar', 'panda')
+                    app.set_theme('twilight')
+                    app.start_match(MatchConfig(2, ('Meazbah', 'Alex'), seed=42, profile_ids=(identifier, other)))
+                    for _ in range(9):
+                        app.complete_turn(6)
+                        app.cancel_pending()
             capture(root, scene, app.analysis_window)
             if errors:
                 raise errors[0]
