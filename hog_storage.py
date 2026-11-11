@@ -79,20 +79,20 @@ def restore_snapshot(payload):
 
 
 class Store(CampaignStorage):
-    def __init__(self, path=None):
+    def __init__(self, path=None, *, check_same_thread=True):
         if path is not None:
             path = Path(path)
             path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(str(path) if path is not None else ":memory:")
+        self.connection = sqlite3.connect(str(path) if path is not None else ":memory:", check_same_thread=check_same_thread)
         version = self.connection.execute("PRAGMA user_version").fetchone()[0]
-        if version > 2:
+        if version > 3:
             self.connection.close()
             raise sqlite3.DatabaseError("This database was created by a newer Hog version.")
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
         try:
-            if version == 1 and path is not None:
-                backup = Path(str(path) + ".v1-backup")
+            if version in (1, 2) and path is not None:
+                backup = Path(str(path) + f".v{version}-backup")
                 if not backup.exists():
                     temporary = Path(str(backup) + "." + uuid4().hex)
                     try:
@@ -125,7 +125,9 @@ class Store(CampaignStorage):
                 CREATE TABLE IF NOT EXISTS profile_cosmetics(
                     profile_id TEXT PRIMARY KEY REFERENCES profiles(id),
                     dice TEXT NOT NULL, avatar TEXT NOT NULL, theme TEXT NOT NULL);
-                PRAGMA user_version = 2;
+                CREATE TABLE IF NOT EXISTS profile_archive(
+                    profile_id TEXT PRIMARY KEY REFERENCES profiles(id));
+                PRAGMA user_version = 3;
                 COMMIT;
             """)
         except (OSError, sqlite3.Error):
@@ -151,8 +153,35 @@ class Store(CampaignStorage):
             raise ValueError("That profile name already exists.") from error
         return identifier
 
-    def profiles(self):
-        return [dict(row) for row in self.connection.execute("SELECT * FROM profiles ORDER BY name_key")]
+    def profiles(self, include_archived=False):
+        sql = "SELECT p.*, (a.profile_id IS NOT NULL) AS archived FROM profiles p LEFT JOIN profile_archive a ON a.profile_id=p.id"
+        if not include_archived:
+            sql += " WHERE a.profile_id IS NULL"
+        return [dict(row) for row in self.connection.execute(sql + " ORDER BY name_key")]
+
+    def rename_profile(self, identifier, name):
+        self._campaign_profile(identifier)
+        # Reuse exactly the same name validation as profile creation.
+        name = name.strip()
+        if (not name or len(name) > 20 or not all(c.isprintable() for c in name)
+                or name.casefold() == "guest / no profile"):
+            raise ValueError("Use a name of 1-20 printable characters; the guest name is reserved.")
+        try:
+            with self.connection:
+                self.connection.execute("UPDATE profiles SET name=?, name_key=? WHERE id=?",
+                                        (name, name.casefold(), identifier))
+        except sqlite3.IntegrityError as error:
+            raise ValueError("That profile name already exists.") from error
+
+    def archive_profile(self, identifier, archived=True):
+        self._campaign_profile(identifier)
+        if type(archived) is not bool:
+            raise ValueError("Archive status must be true or false.")
+        with self.connection:
+            if archived:
+                self.connection.execute("INSERT OR IGNORE INTO profile_archive VALUES(?)", (identifier,))
+            else:
+                self.connection.execute("DELETE FROM profile_archive WHERE profile_id=?", (identifier,))
 
     def stats(self):
         rows = self.connection.execute("""

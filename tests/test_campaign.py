@@ -189,7 +189,7 @@ class CampaignStorageTests(unittest.TestCase):
     def test_v1_migration_creates_backup_and_preserves_old_data(self):
         self.make_v1()
         self.store = Store(self.path)
-        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 2)
+        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 3)
         self.assertEqual(self.store.profiles()[0]['id'], self.profile)
         self.assertEqual(len(self.store.tournaments()), 1)
         self.assertEqual(len(self.store.history()), 1)
@@ -214,9 +214,9 @@ class CampaignStorageTests(unittest.TestCase):
         self.store = Store(self.path)
 
     def test_future_database_version_rejected(self):
-        self.store.connection.execute('PRAGMA user_version=3')
+        self.store.connection.execute('PRAGMA user_version=4')
         with self.assertRaises(sqlite3.DatabaseError): Store(self.path)
-        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 3)
+        self.assertEqual(self.store.connection.execute('PRAGMA user_version').fetchone()[0], 4)
 
 
 class CampaignDesktopTests(unittest.TestCase):

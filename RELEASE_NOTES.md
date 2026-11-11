@@ -1,33 +1,37 @@
 # GitHub Release Details
 
-**Tag:** `v3.5.0`
+**Tag:** `v4.0.0`
 
-**Title:** `v3.5.0 - Private Multiplayer Edition`
+**Title:** `v4.0.0 - Complete Desktop Edition`
 
 ## Description
 
-Play Hog with a friend through a private room on a relay you host.
+Hog v4.0.0 completes the six-release improvement cycle with a more approachable interface and portable progress tools.
 
 ### What's new
 
-- Room invitation codes, a two-player ready lobby and synchronized desktop tables.
-- Authoritative server dice/scoring with seat, turn and match validation.
-- Optional turn timers with clearly marked zero-dice timeout moves.
-- Presence indicators, timer pauses, temporary seat reconnection and automatic retry handling.
-- Duplicate-move protection when a successful response is lost.
-- Rematch voting with alternating starting seats.
-- Standard-library HTTP(S) relay, certificate-verifying client and hosting guide.
-- Tk view cleanup fix for background-worker garbage collection.
-- Eight actual screenshots, updated cumulative README and archived prior documentation.
+- Four-step welcome tour with rules, controls, modes and progress guidance.
+- Nine remappable action keys, conflict checking, saved defaults and updated button hints.
+- Keyboard focus navigation and Enter activation of the selected button.
+- Profile rename, archive and restore while retaining statistics and campaign rewards.
+- Portable backups with background validation and record-count previews.
+- Confirmed restore with a required automatic safety copy of current data.
+- Unreadable-settings notices and callback-error pause with limited local diagnostics.
+- Linux install/uninstall, Windows installer recipe, macOS disk-image builder and a manual build workflow.
+- Ten current screenshots, cumulative README, recovery guide and archived v3.5.0 documentation.
 
-### Start locally
+All previous gameplay remains: nine computer strategies, six campaign stages, cosmetics, move coaching, puzzles, statistics, interactive replays, tournaments and private multiplayer. The original Hog scoring rules are preserved.
 
-Run `python hog_server.py` in one terminal and `python hog_desktop.py` in another. Open Online and use `http://127.0.0.1:8765`. Both players need the same running, reachable relay plus a room code. Read ONLINE.md for LAN/HTTPS hosting. No public server is deployed by this ZIP.
+### Start
 
-Online results stay separate from local wins, campaign progress, statistics and saves. Seat credentials live only in app memory; app exit loses them, and relay restart removes rooms. Existing offline features and SQLite schema 2 are preserved.
+Run `python hog_desktop.py`. In PyCharm, run that file with a Tk-enabled Python 3.10+ interpreter. For private multiplayer, also start `python hog_server.py` separately and follow ONLINE.md.
 
-### Validation
+### Backups and compatibility
 
-236 automated checks and 18 doctest examples passed on Linux. Real HTTP/TLS clients completed a round/rematch; tests cover response-loss retries, timeout moves, reconnect timing, malformed requests, token isolation and Tk lifecycle cleanup. The rebuilt Linux client passed version and actual-window smoke checks. Public internet/NAT routing and native Windows/macOS execution were not verified.
+Settings > Backup & recovery exports local progress. Preview validates the selected file before restore replaces data; it does not merge. Restore creates a safety copy first. Schema-1/schema-2 databases are backed up before migration to schema 3. Existing manual saves and settings remain supported. Earlier releases need the matching old database backup to downgrade.
 
-The final distribution-polish release remains next in the roadmap.
+### Validation and platform scope
+
+270 automated tests and 18 doctest examples passed on Linux with real Tk windows enabled. The rebuilt Linux client passed native startup and isolated install/launch/upgrade/uninstall checks. Real HTTP/TLS multiplayer tests are retained. Windows/macOS recipes and CI are included, but their native builds were not executed here; no prebuilt Windows/macOS installer is attached. Signing, notarization, public relay hosting and external publication are not configured.
+
+Attach `hog-v4.0.0.zip` to this release. The ZIP includes the full project, current documentation, historical screenshots and a Linux native client.

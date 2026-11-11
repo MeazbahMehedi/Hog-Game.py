@@ -2,6 +2,22 @@
 
 All versions retain the Sow Sad, Boar Brawl, and Sus Fuss game rules.
 
+## v4.0.0 - Complete Desktop Edition - 2026-10-29
+
+- Added a four-step first-launch welcome tour with saved completion and manual reopening.
+- Added nine configurable action keys, conflict validation, default reset and live button hints.
+- Added focused Enter activation without an accidental second game roll.
+- Added profile rename, archive and restore while preserving identity, records and rewards.
+- Added SQLite schema 3 with a pre-migration backup for schema 1 or 2.
+- Added portable JSON backups, background semantic validation and record-count previews.
+- Required confirmation and a successful current-data safety export before atomic database restore.
+- Preserved exact saved dice continuation and validated campaign stars/equipment during import.
+- Added unreadable-settings notices, callback-error pause and limited local diagnostics.
+- Fixed archived-player statistics filtering and cleanup of abandoned backup validation results.
+- Added a per-user Linux installer/uninstaller, Windows Inno Setup recipe, macOS DMG builder and manual CI matrix.
+- Added 34 checks for a total of 270, plus 18 doctests, ten actual screenshots and cumulative documentation.
+- Rebuilt and tested the Linux client. Windows/macOS native builds are supplied as recipes, not verified binaries.
+
 ## v3.5.0 - Private Multiplayer Edition - 2026-10-29
 
 - Added private two-seat rooms with invitation codes, ready status and server-owned dice/scoring.

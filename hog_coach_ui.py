@@ -40,7 +40,7 @@ class CoachUI:
         self.label(panel, 'Study a position, revisit your decisions, or solve a challenge.',
                    12, fg=self.palette.muted).pack(anchor='w', pady=(10, 24))
         for number, title, text, command in (
-            ('01', 'Live move coach', 'During a human turn, use Coach / H. Compare every dice count and read the model explanation.',
+            ('01', 'Live move coach', f'During a human turn, use Coach / {self.preferences.shortcuts[3]}. Compare every dice count and read the model explanation.',
              lambda: self.show_setup(1)),
             ('02', 'Decision review', 'Review a completed match using the positions before its rolls. Separate decision gaps from dice luck.',
              self.show_review),

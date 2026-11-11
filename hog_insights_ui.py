@@ -29,7 +29,7 @@ class InsightsUI:
         controls.pack(fill='x', pady=(0, 14))
         self.label(controls, 'View', 10, fg=self.palette.muted).pack(side='left', padx=(0, 10))
         choices = {'All recorded seats': None}
-        for profile in self.store.profiles():
+        for profile in self.store.profiles(True):
             choices['Profile / ' + profile['name']] = profile['id']
         selected = next((label for label, identifier in choices.items() if identifier == initial_profile), None)
         if initial_profile is None and len(choices) > 1:

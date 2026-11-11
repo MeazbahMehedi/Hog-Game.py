@@ -60,8 +60,14 @@ class Preferences:
     sound: bool = False
     pace: str = "normal"
     large_text: bool = False
+    welcome_seen: bool = False
+    shortcuts: tuple = ("Return", "p", "r", "h", "t", "m", "Escape", "F1", "x")
 
     def __post_init__(self):
+        from hog_controls import validate_shortcuts
+        object.__setattr__(self, "shortcuts", validate_shortcuts(self.shortcuts))
+        if type(self.welcome_seen) is not bool:
+            raise ValueError("Welcome status must be true or false.")
         if self.theme not in PALETTES or self.pace not in PACE_DELAYS:
             raise ValueError("Unknown theme or computer pace.")
         if type(self.animations) is not bool or type(self.sound) is not bool or type(self.large_text) is not bool:
@@ -78,16 +84,23 @@ def default_preferences_path():
     return base / "Hog" / "settings.json"
 
 
-def load_preferences(path):
-    """Use defaults for a missing, malformed, or invalid preferences file."""
+def load_preferences_with_notice(path):
+    """Read legacy/current preferences without mutating an unreadable file."""
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(data, dict):
-            return Preferences()
-        keys = ("theme", "animations", "sound", "pace", "large_text")
-        return Preferences(**{key: data[key] for key in keys if key in data})
+            raise ValueError("Expected settings object")
+        keys = ("theme", "animations", "sound", "pace", "large_text", "welcome_seen", "shortcuts")
+        return Preferences(**{key: data[key] for key in keys if key in data}), ""
+    except FileNotFoundError:
+        return Preferences(), ""
     except (OSError, ValueError, TypeError):
-        return Preferences()
+        return Preferences(), "Settings could not be read; defaults are active. Saving a setting will replace the settings file."
+
+
+def load_preferences(path):
+    """Use defaults for missing, malformed or invalid preferences."""
+    return load_preferences_with_notice(path)[0]
 
 
 def save_preferences(path, preferences):

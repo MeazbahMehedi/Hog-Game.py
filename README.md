@@ -1,24 +1,111 @@
 # The Game of Hog
 
-**v3.5.0 · Private Multiplayer Edition · Python 3.10+ / Tkinter**
+**v4.0.0 · Complete Desktop Edition · Python 3.10+ / Tkinter**
 
-Share a table with a friend through a private room. This release adds an authoritative Python relay and desktop multiplayer: invitation codes, ready status, synchronized scoring, turn timers, rematches and temporary seat reconnection. The complete local game, campaign, cosmetics, coaching and analysis tools remain included.
+A coursework dice simulator, expanded into a desktop game with nine computer strategies, a six-stage campaign, earned cosmetics, coaching, replay analysis, statistics, tournaments and private multiplayer. v4.0.0 adds a guided welcome tour, editable keyboard controls, profile management, portable progress backups and distribution tools.
 
-![Private multiplayer](docs/screenshots/v3.5.0-online-game.png)
+![Hog v4 dashboard](docs/screenshots/v4.0.0-dashboard.png)
 
-## What's New in v3.5.0
+## What's New in v4.0.0
 
-- **Private rooms:** create an eight-character invitation code or join a friend's room on the same relay.
-- **Ready lobby:** both players explicitly ready up before round 1.
-- **Server-owned scoring:** clients send a dice count; the relay generates the actual roll and applies the original rules.
-- **Synchronized table:** player presence, scores, active turn, last dice, bonuses and a scrollable turn journal.
-- **Turn timers:** disabled, 30, 60 or 120 seconds; a connected player timeout takes the real zero-dice action.
-- **Reconnection:** heartbeat-based connection indicators, timer pauses, temporary seat reservation and automatic transport retries.
-- **Rematches:** both players vote to start another round; the starting seat alternates.
-- **Retry protection:** match/turn checks and request identities prevent a repeated response-loss retry from rolling twice.
-- **HTTP(S) client and relay:** optional direct TLS and trusted-CA configuration, with certificate verification enabled.
-- **Window cleanup fix:** cyclic view callbacks are disposed on the Tk thread before workers can collect them.
-- **Release material:** eight actual screenshots, a two-client smoke script, hosting guide, archived documentation and rebuilt Linux client.
+- **Four-step welcome tour:** learn the modes, rules, controls and progress tools. Skip or finish it once; reopen it from Settings.
+- **Configurable controls:** remap nine actions to distinct letters, function keys, Return or Escape. Conflicting keys are rejected; defaults are one click away.
+- **Keyboard access:** Tab / Shift+Tab moves focus, visible focus outlines show the selected control, and Space / Enter activates focused buttons.
+- **Profile management:** rename a player, archive them from new setup/campaign lists, or restore them. Identity, history, statistics, save references and earned rewards remain intact.
+- **Portable backups:** export profiles, standard history, the manual save, tournaments, campaign attempts, equipment and preferences into one `.hogbackup` file.
+- **Preview before restore:** background validation checks scoring, identities, references, dice state, campaign rewards, equipment and tournament totals in an isolated database.
+- **Recovery copy:** confirmation and a successful automatic safety export are required before restore replaces current data.
+- **Error recovery:** unreadable settings receive a visible defaults notice; unexpected UI failures pause the local match and write limited code-location diagnostics when possible.
+- **Distribution:** a rebuilt Linux client, tested per-user Linux install/uninstall, a Windows installer recipe, a macOS disk-image builder and a manual three-platform CI workflow.
+- **Documentation:** ten current screenshots, cumulative release history, installation/recovery guides and ready-to-copy GitHub release notes.
+
+## Start Playing
+
+Extract this ZIP, open its project folder, and run:
+
+```bash
+python hog_desktop.py
+```
+
+Windows can also use `py -3 hog_desktop.py`; Linux may use `python3`. In PyCharm, select a Python interpreter with Tk support and run `hog_desktop.py`. Source play needs no pip packages. A desktop display is required; `python hog_ui.py` is the terminal alternative. Full installation steps are in [INSTALL.md](INSTALL.md).
+
+The first normal launch without a completed welcome preference opens the tour. Completing or skipping it saves that preference. Closing it with the window close control leaves it available on the next launch. The tour can always be reopened through **Settings > Welcome tour**. It does not replace the interactive scoring lessons under **Learn**.
+
+![Welcome tour](docs/screenshots/v4.0.0-welcome.png)
+
+![Welcome rules](docs/screenshots/v4.0.0-welcome-rules.png)
+
+## Make the Controls Yours
+
+Open **Settings > Edit controls**, choose keys, then **Apply controls**. Each of the nine actions needs a unique key. Letters, F1–F12, Return and Escape are supported. Digits 0–9 stay reserved for main-table dice selection. Reset defaults selects the original mapping; Apply commits it.
+
+![Control editor](docs/screenshots/v4.0.0-controls.png)
+
+Global action keys belong to the main window. Roll, pause, restart, coach and choose-ten apply to the standard game table; theme, mute, dashboard and rules also work on the main dashboard/setup. Text-entry fields keep normal editing and modifier shortcuts. Campaign/online/replay windows retain their own controls and support focused-button activation. A focused button owns Enter, even when Return is assigned to another action.
+
+Main-table pause, restart and coach labels follow the saved mapping, and the turn prompt shows the current roll key. Choosing a dice-count button with Enter selects that count; it does not also roll.
+
+![Game with a remapped roll key](docs/screenshots/v4.0.0-game.png)
+
+## Manage Local Players
+
+Open **Players > Rename / archive profiles**. Names remain case-insensitively unique, printable and 1–20 characters. Renaming keeps the same profile identity; previous match names remain historical. Archive hides a profile from new match setup and campaign selection. Restore makes it selectable again.
+
+![Profile manager](docs/screenshots/v4.0.0-profiles.png)
+
+Archiving is reversible. It does not erase standard statistics, campaign stars, equipment, achievements or save references. Archived players remain visible in the manager, historical statistics, leaderboard and recorded matches. Restore the profile before starting a new campaign attempt with it. Existing configured/saved matches keep their original player assignments.
+
+## Back Up and Restore Progress
+
+Open **Settings > Backup & recovery**. Export creates one portable JSON file with a `.hogbackup` extension. Keep it somewhere you can find again or copy it to another computer. It contains local player names and history; share it only when you intend to share that data.
+
+![Validated restore preview](docs/screenshots/v4.0.0-backup.png)
+
+Choose a backup to validate it in the background and preview record counts. Your current data is unchanged during preview. Restore replaces local data rather than merging it. Finish or leave an active standard match and leave any reserved online room first. Unfinished campaign runs are not saved; opening another analysis view ends that attempt.
+
+After confirmation, Hog first exports current data to `Hog/backups/before-restore-<timestamp>.hogbackup`, beside the settings file. If that export fails, restore stops. SQLite then atomically copies the validated database into the live connection. Imported preferences apply immediately; a settings-write failure is reported separately while session preferences remain applied. To undo a restore, select its safety file and restore it through the same preview flow. Safety copies are not automatically deleted.
+
+Backups include the **manual save slot**, not an unsaved standard match. They exclude online credentials/rooms, unfinished campaign/practice tables, session puzzle counters, generated installers and diagnostic logs. The importer accepts the v4 portable-backup schema, not an older release ZIP or an arbitrary SQLite database. It allows at most 32 MiB and 10,000 records per collection; invalid, inconsistent, duplicate or unsupported content is rejected. The SHA-256 checksum detects accidental damage; it is not a signature or proof of who created a file. Tournament aggregates are checked against stored results; tournaments are not re-simulated during import.
+
+See [RECOVERY.md](RECOVERY.md) for failure recovery and data locations.
+
+## Appearance and Recovery
+
+Settings provides themes, animation, audio and computer pace. **Access** provides larger text and reduced motion. These settings and custom keys persist in the usual per-user location. Invalid or unreadable settings use defaults with a dashboard notice; changing a setting replaces the settings file. A failed write keeps changes for the current session and reports the failure.
+
+![Settings tools](docs/screenshots/v4.0.0-settings.png)
+
+An unexpected Tk callback error cancels the main match timers and pauses play. The dialog points to `last-error.log` when it could be written. The diagnostic records only exception type and code locations, without the exception message, local variables or network tokens. Hog does not automatically retry an uncertain failed action. Process crashes, power loss and operating-system termination cannot be recovered by a callback handler; use a manual save and exported backups.
+
+![High contrast controls](docs/screenshots/v4.0.0-contrast.png)
+
+![Compact dashboard](docs/screenshots/v4.0.0-compact.png)
+
+## Installers and Platform Status
+
+| Platform | Included in this ZIP | Verification here |
+| --- | --- | --- |
+| Linux x86-64 | Native one-folder client; per-user installer/uninstaller and application-menu entry | Built and tested on glibc 2.39, Python 3.12.3 / Tk 8.6; native launch and isolated install/uninstall |
+| Windows | Python source, native build script and Inno Setup `.iss` recipe | Recipe supplied; Windows installer/executable not built or run here |
+| macOS | Python source, native build script and drag-to-Applications `.dmg` builder | Recipe supplied; macOS disk image/app not built or run here |
+| GitHub Actions | Manual Linux/Windows/macOS build workflow | Included for use in your repository; not executed or published by this ZIP |
+
+Build native packages on the target OS. Signing/notarization and external publication are not configured. See [INSTALL.md](INSTALL.md) for commands and [docs/PUBLISHING.md](docs/PUBLISHING.md) for GitHub release preparation. Windows/macOS release artifacts should be tested on their respective machines before being advertised as verified.
+
+## How v4 Improves v3.5
+
+| Area | Through v3.5.0 | v4.0.0 adds |
+| --- | --- | --- |
+| Getting started | Tutorial and practice | First-launch feature/rule/control tour |
+| Inputs | Fixed action keys | Remapping, conflict validation, focused Enter activation |
+| Players | Create and assign profiles | Rename, archive and restore without losing history |
+| Data | Local database, manual save and CSV | Portable export, validated preview and restore safety copy |
+| Recovery | Individual save/storage messages | Settings notice, callback pause and limited local diagnostics |
+| Distribution | Linux portable client and build scripts | Linux installer, Windows/macOS recipes and manual CI matrix |
+
+## Retained from v3.5.0
+
+Private rooms, invitation codes, ready status, server-owned scoring, timers, reconnect retries, rematches and optional HTTPS remain available. The multiplayer sections below retain v3.5.0 screenshots to document those features. No public relay is deployed by the ZIP.
 
 ## Try Multiplayer Locally
 
@@ -86,7 +173,7 @@ Online state is temporary relay memory. It does not alter local profile wins, st
 
 ![Light multiplayer table](docs/screenshots/v3.5.0-online-light.png)
 
-The SQLite schema stays at 2; the previous schema-1 backup/migration path is retained. No runtime dependency beyond Python/Tkinter is added. The native Linux package is a multiplayer-capable client; the relay runs from the Python source. Native Windows/macOS networking and public-internet routing were not tested here.
+v4 uses SQLite schema 3 for profile archiving; schema-1/schema-2 backups precede migration. No runtime dependency beyond Python/Tkinter is added. The native Linux package is a multiplayer-capable client; the relay runs from the Python source. Native Windows/macOS networking and public-internet routing were not tested here.
 
 ![Dashboard with Online navigation](docs/screenshots/v3.5.0-dashboard.png)
 
@@ -178,9 +265,9 @@ These campaign milestones are separate from the six existing standard-match prof
 
 ## Data Upgrade and Compatibility
 
-The first normal launch against a schema-1 database creates **`hog.sqlite3.v1-backup`** beside the existing database, unless that backup already exists. It uses SQLite's backup operation and installs the backup before migration. If backup creation fails, the upgrade does not proceed. New campaign tables and schema version 2 are installed in a transaction; failures roll back and are reported through the existing temporary-storage fallback notice.
+On a normal launch with a schema-1 or schema-2 database, Hog creates `hog.sqlite3.v1-backup` or `hog.sqlite3.v2-backup` beside it unless that backup already exists. Backup installation succeeds before migration. Tables for campaign progress and profile archive membership are installed transactionally; failures stop the upgrade and show the temporary-storage notice.
 
-The existing database, settings paths, profiles, standard history, tournaments and manual save format remain supported. The SQL database version becomes **2**; the standard saved-match JSON format remains **1**. Earlier Hog releases cannot open schema 2. Keep the pre-upgrade backup if you intend to return to an older version, and close the app before copying or restoring database files. An existing backup is not overwritten.
+The database and settings locations remain unchanged. Existing profiles, history, tournaments, campaign rewards, cosmetics and the manual saved-match JSON schema **1** remain supported. The SQL database becomes schema **3**. Earlier releases reject newer database versions. For a downgrade, close all Hog windows and use the matching pre-upgrade database backup. Existing backup files are not overwritten.
 
 Campaign data lives in `campaign_runs` and `profile_cosmetics`. Campaign attempts do **not** enter standard match history, the local wins leaderboard, standard CSV exports, or standard statistics/replay/decision-review selectors. Those selectors continue to cover standard desktop matches. Completing campaign stages never replaces or clears the standard manual save slot. Campaign progression stays local and is not synchronized with the multiplayer relay.
 
@@ -411,7 +498,7 @@ Python 3.10+, Tkinter, and a graphical desktop are required. No third-party Pyth
 | --- | --- |
 | 0–9 | Choose dice count |
 | X | Choose 10 dice |
-| Enter | Confirm a human move |
+| Enter | Activate a focused button; otherwise the default human-roll shortcut |
 | P | Pause / resume |
 | R | Restart match |
 | T | Switch theme |
@@ -419,6 +506,8 @@ Python 3.10+, Tkinter, and a graphical desktop are required. No third-party Pyth
 | F1 | Rules |
 | H | Request move advice during a human turn |
 | Esc | Home, confirming before leaving a match |
+
+These are the default keys; edit nine actions in Settings > Edit controls. Tab / Shift+Tab navigates controls and Space / Enter activates focused buttons.
 
 Shortcuts do not interfere with typing in name/seed fields. Mouse controls remain available. Human inputs are locked during rolling and computer turns.
 
@@ -428,7 +517,7 @@ Shortcuts do not interfere with typing in name/seed fields. Mouse controls remai
 
 Sound defaults to off. Windows uses built-in `winsound`; macOS uses `afplay`; Linux uses an available `paplay` or `aplay`. If no backend exists, the sound control is disabled and the game remains playable. An available player still needs a working audio device. Playback failures do not interrupt a match.
 
-Preferences contain only theme, animation, sound, and computer pace. Locations:
+Preferences contain theme, animation, sound, computer pace, larger-text mode, welcome completion and custom action keys. Locations:
 
 - Windows: `%APPDATA%/Hog/settings.json`
 - macOS: `~/Library/Application Support/Hog/settings.json`
@@ -478,7 +567,8 @@ The experiment game count is per starting seat per strategy. Results are sampled
 | v3.2.0 | Profile statistics, opponent results, dice-choice charts, records, interactive score timelines, replay speeds, factual turn explanations, and 156 checks. |
 | v3.3.0 | Expanded move coach, pre-roll decision review, eight model-based puzzles, session learning progress, navigation fixes, and 177 checks. |
 | v3.4.0 | Six-stage persistent campaign, objective stars, opponent personalities, wardrobe, dice/avatar/theme rewards, milestone bars, schema-2 migration/backup, and 207 checks. |
-| **v3.5.0** | Private rooms, relay-owned scoring, ready lobby, timers, retries/reconnection, alternating rematches, HTTPS, cleanup regression fix, and 236 checks. |
+| v3.5.0 | Private rooms, relay-owned scoring, ready lobby, timers, retries/reconnection, alternating rematches, HTTPS, cleanup regression fix, and 236 checks. |
+| **v4.0.0** | Welcome tour, editable controls, profile rename/archive, portable backup/restore, recovery notices, installer recipes, manual CI and 270 checks. |
 
 ![Previous desktop](docs/screenshots/v1.2.0-home.png)
 
@@ -494,12 +584,16 @@ The experiment game count is per starting seat per strategy. Results are sampled
 
 ![Previous Showcase Edition](docs/screenshots/v3.0.0-home.png)
 
-Full earlier documentation: [v3.4.0](docs/history/v3.4.0.md), [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
+Full earlier documentation: [v3.5.0](docs/history/v3.5.0.md), [v3.4.0](docs/history/v3.4.0.md), [v3.3.0](docs/history/v3.3.0.md), [v3.2.0](docs/history/v3.2.0.md), [v3.1.0](docs/history/v3.1.0.md), [v3.0.0](docs/history/v3.0.0.md), [v2.2.0](docs/history/v2.2.0.md), [v2.1.0](docs/history/v2.1.0.md), [v2.0.0](docs/history/v2.0.0.md), [v1.2.0](docs/history/v1.2.0.md), [v1.1.0](docs/history/v1.1.0.md). See [CHANGELOG.md](CHANGELOG.md) for cumulative changes. Archived README files describe their historical releases.
 
 ## Architecture and Files
 
 | Module | Responsibility |
 | --- | --- |
+| `hog_release_ui.py` | Welcome tour, control editor, profile manager, backup/recovery UI |
+| `hog_controls.py` | Allowed keys, unique action mappings and defaults |
+| `hog_backup.py` | Bounded portable JSON, semantic validation and restore safety export |
+| `tools/install_linux.py`, `installers/`, `.github/workflows/` | Linux installation, platform recipes and manual CI |
 | `hog.py` | Rules, strategy registry, incremental sessions, full-match simulator |
 | `hog_ai.py` | Exact roll distributions, greedy and optimal policies, move advice, measured comparisons |
 | `hog_match.py` | Validated match setup and human profile assignments |
@@ -541,11 +635,11 @@ python -m unittest discover -s tests -v
 python -m doctest hog.py dice.py
 ```
 
-236 checks passed on Python 3.12.3 / Tk 8.6 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
+270 checks passed on Python 3.12.3 / Tk 8.6 on a Linux virtual display, alongside 18 documentation examples. The rebuilt Linux package passed its version and real-window smoke checks. GUI classes skip when no display is available. Native Windows/macOS playback was verified with mocked backends, not physical audio devices. Native Windows/macOS execution is not claimed.
 
 Current PNGs capture actual Tk windows. Historical terminal images are styled renderings with raw transcripts preserved. Optional screenshot tools require Pillow; playing and tests do not. The WAV generator uses only the standard library.
 
-This edition includes self-hosted private multiplayer. It does not include public matchmaking, cloud accounts, persistent online rooms, or a prebuilt Windows/macOS executable. v3.5.0 is the fifth release in the new improvement roadmap; the final distribution-polish release remains future work.
+This edition includes self-hosted private multiplayer. It does not include public matchmaking, cloud accounts, persistent online rooms, or a prebuilt Windows/macOS executable. v4.0.0 completes the six-release improvement cycle from v3.1.0 through v4.0.0. Windows/macOS build execution and signing remain platform-specific follow-up work.
 
 ## Credits
 
@@ -559,8 +653,8 @@ Campaign rules, persistence and presentation are split across three focused modu
 
 Presentation helpers (`hog_dashboard.py`) derive dashboard summaries and scoring labels without modifying match data. The coaching layer reuses the exact policy and reviews the score pair before each recorded roll. Its puzzle evaluator accepts numerical ties and keeps session progress separate from profile records. The statistics layer validates completed events before aggregating them; replay charts consume those reconstructed states. `hog_insights_ui.py` composes the two analysis windows with the main desktop app, and `hog_charts.py` renders data without external dependencies. Layout, pulse, and scoring callbacks are tracked separately so cosmetic changes cannot advance a match.
 
-The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets or SQLite records.
+The project separates scoring and turn events (`hog.py`), probability analysis (`hog_ai.py`), local persistence (`hog_storage.py`), tournament simulation (`hog_tournament.py`), tutorial/practice/replay validation (`hog_showcase.py`), and Tk presentation (`hog_desktop.py`). Background workers calculate policies and tournaments; only the Tk thread updates widgets and the live SQLite store. Backup validation builds an isolated store in a worker and transfers it to Tk after completion, with no concurrent access.
 
 Game randomness, cosmetic animation randomness, and recorded replay outcomes have distinct lifecycles. Tests verify that animation and advice do not change real dice results, saved games preserve future outcomes, replay is read-only, and practice cannot distort standard profile statistics.
 
-The original coursework grew into six separately packaged upgrades, followed by dashboard, statistics, coaching, campaign and private-multiplayer releases, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.
+The original coursework grew into six separately packaged upgrades, followed by dashboard, statistics, coaching, campaign, private multiplayer and release-polish versions, while preserving the scoring rules. This progression demonstrates control flow, closures, probability, dynamic programming, event-driven interfaces, transactional storage, input validation, reproducible tests, and native packaging.

@@ -33,14 +33,17 @@ from hog_insights_ui import InsightsUI
 from hog_coach_ui import CoachUI
 from hog_campaign_ui import CampaignUI
 from hog_online_ui import OnlineUI
+from hog_release_ui import ReleaseUI
+from hog_controls import ACTIONS
+from hog_backup import discard_prepared
 from hog_drawing import draw_die, draw_avatar
 from hog_audio import SoundPlayer
 from hog_preferences import (PALETTES, BASE_THEMES, PACE_DELAYS, Preferences, default_preferences_path,
-                             load_preferences, save_preferences)
+                             load_preferences, load_preferences_with_notice, save_preferences)
 
 
 
-class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
+class HogApp(ReleaseUI, OnlineUI, CampaignUI, CoachUI, InsightsUI):
     """Event-driven desktop views. Computer turns use cancellable Tk timers."""
 
     def __init__(self, root, *, cpu_delay=None, preferences=None, preferences_path=None, data_path=None):
@@ -50,6 +53,9 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
         self._redraw_insights = None
         self.analysis_pending = None
         self.storage_error = ""
+        self.backup_candidate = None
+        self.backup_future = None
+        self.welcome_pending = None
         try:
             self.store = Store(data_path)
         except (OSError, sqlite3.Error):
@@ -57,6 +63,8 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             self.storage_error = "Persistent data could not be opened. This session uses temporary storage."
         self.match_id = None
         self.root = root
+        if "report_callback_exception" not in vars(root):
+            root.report_callback_exception = self.handle_callback_error
         self.preferences_path = Path(preferences_path) if preferences_path is not None else None
         self.preferences = preferences or (load_preferences(self.preferences_path)
                                            if self.preferences_path is not None else Preferences())
@@ -83,7 +91,7 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
         self.events = []
         self.screen = "home"
         self.rules_window = None
-        root.title(f"Hog | Multiplayer Edition v{VERSION}")
+        root.title(f"Hog | Complete Edition v{VERSION}")
         height = max(720, min(880, root.winfo_screenheight() - 70))
         root.geometry(f"1280x{height}")
         root.minsize(960, 720)
@@ -127,6 +135,12 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
         root.bind("<Button-4>", self._dashboard_wheel, add="+")
         root.bind("<Button-5>", self._dashboard_wheel, add="+")
         self.show_home()
+        if self.preferences_path is not None and not self.preferences.welcome_seen:
+            def welcome():
+                self.welcome_pending = None
+                if self.screen == "home":
+                    self.show_welcome()
+            self.welcome_pending = root.after(150, welcome)
 
     def label(self, parent, text, size=11, *, bold=False, fg=None, bg=None, **kwargs):
         display_size = size + 2 if self.preferences.large_text and size <= 13 else size
@@ -143,6 +157,10 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
                          font=(self.family, 10, "bold"), relief="flat", bd=0,
                          padx=18, pady=10, cursor="hand2", highlightthickness=2,
                          highlightbackground=fill, highlightcolor=self.palette.gold, **kwargs)
+        def activate(_event):
+            button.invoke()
+            return "break"
+        button.bind("<Return>", activate)
         button._hog_base_font = (self.family, 10, "bold")
         if self.preferences.large_text:
             button.configure(font=(self.family, 12, "bold"))
@@ -171,6 +189,9 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             self.pending = None
 
     def close(self):
+        if self.welcome_pending is not None:
+            self.root.after_cancel(self.welcome_pending)
+            self.welcome_pending = None
         self.cancel_pending()
         self._cancel_ui()
         if self.layout_pending is not None:
@@ -385,11 +406,20 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
                             state="readonly", style="Hog.TCombobox")
         pace.pack(fill="x", pady=(0, 20))
         pace.bind("<<ComboboxSelected>>", lambda _event: self.set_pace(self.settings_pace.get()))
-        self.label(inner, "KEYBOARD CONTROLS", 9, bold=True, fg=self.palette.accent).pack(anchor="w")
-        self.label(inner, "0-9 / choose dice     X / choose 10     Enter / roll\n"
-                          "P / pause or resume   R / restart       Esc / home\n"
-                          "T / switch theme      M / mute          F1 / rules", 10,
-                   fg=self.palette.muted).pack(anchor="w", pady=(8, 15))
+        self.label(inner, "KEYBOARD & PROGRESS", 9, bold=True, fg=self.palette.accent).pack(anchor="w")
+        self.label(inner, "Tab / Shift+Tab move focus. Space / Enter activate focused buttons.\n"
+                          "Digits 0-9 choose dice. Nine action keys can be remapped.", 10,
+                   fg=self.palette.muted).pack(anchor="w", pady=(8, 12))
+        tools = tk.Frame(inner, bg=self.palette.bg)
+        tools.pack(fill="x", pady=(0, 12))
+        def open_tool(command):
+            self.close_settings()
+            command()
+        for text, command in (("Edit controls", self.show_controls), ("Backup & recovery", self.show_data_center),
+                              ("Welcome tour", self.show_welcome)):
+            button = self.button(tools, text, lambda action=command: open_tool(action), kind="secondary")
+            button.configure(padx=10, pady=8)
+            button.pack(side="left", padx=(0, 8))
         self.settings_status = self.label(inner, self.settings_save_error or "Changes apply immediately.",
                                           9, fg=self.palette.muted, wraplength=600)
         self.settings_status.pack(anchor="w", pady=(0, 14))
@@ -405,36 +435,33 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             self.toggle_pause()
 
     def _keyboard(self, event):
+        # Text fields and modifier shortcuts retain normal platform editing.
+        if event.widget.winfo_class() in ("Entry", "TEntry", "TCombobox", "Text", "Spinbox", "TSpinbox"):
+            return None
+        if event.state & 0x000C:
+            return None
         key = event.keysym.lower()
-        if key == "f1":
-            self.show_rules()
+        if key == "return" and event.widget.winfo_class() in ("Button", "TButton", "Checkbutton"):
+            return None  # The focused control owns Enter.
+        keys = [value.lower() for value in self.preferences.shortcuts]
+        if self.screen == "game" and key in "0123456789" and len(key) == 1:
+            self.select_count(int(key))
             return "break"
-        # Entry editing and journal text selection retain normal keyboard behavior.
-        if event.widget.winfo_class() in ("Entry", "TEntry", "TCombobox", "Text", "Spinbox"):
+        if key not in keys:
             return None
-        if event.state & 0x000C:  # Control or Alt: keep platform shortcuts intact.
-            return None
-        if key == "t":
+        action = keys.index(key)
+        if action == 4:
             self.toggle_theme()
-        elif key == "m":
+        elif action == 5:
             self.set_sound(not self.preferences.sound)
-        elif key == "escape":
+        elif action == 6:
             self.navigate_home()
+        elif action == 7:
+            self.show_rules()
         elif self.screen == "game":
-            if key in "0123456789" and len(key) == 1:
-                self.select_count(int(key))
-            elif key == "x":
-                self.select_count(10)
-            elif key == "return":
-                self.roll_human()
-            elif key == "p":
-                self.toggle_pause()
-            elif key == "r":
-                self.restart_match()
-            elif key == "h":
-                self.show_advice()
-            else:
-                return None
+            commands = {0: self.roll_human, 1: self.toggle_pause, 2: self.restart_match,
+                        3: self.show_advice, 8: lambda: self.select_count(10)}
+            commands[action]()
         else:
             return None
         return "break"
@@ -926,17 +953,18 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             button.configure(state="normal" if human else "disabled", bg=self.palette.accent if selected else self.palette.raised,
                              fg=self.palette.accent_text if selected else self.palette.text, highlightbackground=self.palette.accent if selected else self.palette.raised)
         self.save_button.configure(state="disabled" if finished else "normal")
-        self.advice_button.configure(state="normal" if human else "disabled")
-        self.pause_button.configure(text="Resume / P" if self.paused else "Pause / P",
+        self.advice_button.configure(state="normal" if human else "disabled", text=f"Coach / {self.preferences.shortcuts[3].upper()}")
+        self.restart_button.configure(text=f"Restart / {self.preferences.shortcuts[2].upper()}")
+        self.pause_button.configure(text=("Resume / " if self.paused else "Pause / ") + self.preferences.shortcuts[1].upper(),
                                     state="disabled" if finished else "normal")
         if self.paused:
             self.free_label.configure(text="Match paused. Scores, dice and the journal will not advance.")
             self.action_button.configure(text="Paused", state="disabled")
-            self.status_label.configure(text="Use Resume / P when you are ready.")
+            self.status_label.configure(text=f"Use Resume / {self.preferences.shortcuts[1]} when you are ready.")
         elif self.animating:
             self.free_label.configure(text="Preview faces are cosmetic. The scoring roll is resolved once, at the end.")
             self.action_button.configure(text="Rolling...", state="disabled")
-            self.status_label.configure(text="P pauses this animation.")
+            self.status_label.configure(text=f"{self.preferences.shortcuts[1]} pauses this animation.")
         elif finished:
             self.free_label.configure(text="This match is complete. Review the final turns in the journal.")
             self.action_button.configure(text="Match summary", state="normal", command=self.show_winner)
@@ -952,7 +980,7 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             self.free_label.configure(text=preview)
             text = "Take free points" if self.selected_count == 0 else f"Roll {self.selected_count} dice"
             self.action_button.configure(text=text, state="normal", command=self.roll_human)
-            self.status_label.configure(text=f"{self.config.names[who]}'s turn / Enter to play")
+            self.status_label.configure(text=f"{self.config.names[who]}'s turn / {self.preferences.shortcuts[0]} to play")
         else:
             self.free_label.configure(text="The computer follows its selected strategy and uses the same fair dice.")
             self.action_button.configure(text="Computer's turn", state="disabled")
@@ -1133,6 +1161,14 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
 
     def close_analysis(self):
         self.close_online_view()
+        self.campaign_session = None
+        if self.backup_future is not None:
+            self.backup_future.add_done_callback(discard_prepared)
+            self.backup_future.cancel()
+            self.backup_future = None
+        if self.backup_candidate is not None:
+            self.backup_candidate.close()
+            self.backup_candidate = None
         self._redraw_insights = None
         self.replay_playing = False
         if self.analysis_pending is not None:
@@ -1176,11 +1212,11 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
                            activeforeground=self.palette.accent, pady=12, anchor="w").pack(fill="x")
         self.button(panel, "Use high-contrast theme", lambda: self.set_theme("contrast")).pack(anchor="w", pady=14)
         self.button(panel, "Mute all game sounds", lambda: self.set_sound(False), kind="secondary").pack(anchor="w")
-        self.label(panel, "Keyboard: Tab moves focus; Enter confirms a human roll.\n"
-                          "0-9 and X choose dice; P pauses; R restarts; H opens advice.\n"
-                          "F1 opens rules; T switches themes; M toggles audio.\n\n"
+        self.label(panel, "Keyboard: Tab / Shift+Tab moves focus. Space / Enter activates focused buttons.\n"
+                          "Digits 0-9 choose dice. Edit all nine action keys from Settings.\n\n"
                           "Larger text may need a wider window. Settings persist locally.",
                    11, fg=self.palette.muted, wraplength=670).pack(anchor="w", pady=22)
+        self.button(panel, "Edit keyboard controls", self.show_controls, kind="secondary").pack(anchor="w")
 
     def show_tutorial(self):
         panel = self.analysis_shell("Learn Hog / interactive tutorial")
@@ -1339,7 +1375,7 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
             self.toggle_pause()
         try:
             self.store.save(self.config, self.session, self.events, self.match_id)
-            self.status_label.configure(text="Saved. P resumes; Home > Resume saved restores it.")
+            self.status_label.configure(text=f"Saved. {self.preferences.shortcuts[1]} resumes; Dashboard > Resume saved restores it.")
         except (OSError, sqlite3.Error, ValueError, AttributeError) as error:
             self.status_label.configure(text=f"Save failed: {error}")
 
@@ -1387,6 +1423,7 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
         self.button(create, "Export history CSV", self._export_history, kind="secondary").pack(side="right")
         self.button(create, "Replay viewer", self.show_replay, kind="secondary").pack(side="right", padx=8)
         self.button(create, "Statistics", self.show_statistics, kind="secondary").pack(side="right")
+        self.button(panel, "Rename / archive profiles", self.show_profile_manager, kind="secondary").pack(anchor="w", pady=(0, 12))
         notebook = ttk.Notebook(panel)
         notebook.pack(fill="both", expand=True)
         self.hub_tabs = {}
@@ -1642,7 +1679,7 @@ class HogApp(OnlineUI, CampaignUI, CoachUI, InsightsUI):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Hog Multiplayer Edition")
+    parser = argparse.ArgumentParser(description="Hog Complete Edition")
     parser.add_argument("--version", action="version", version=VERSION)
     parser.add_argument("--theme", choices=BASE_THEMES, help="override the saved theme for launch")
     parser.add_argument("--no-animation", action="store_true", help="start with reduced motion")
@@ -1660,7 +1697,7 @@ def main(argv=None):
               "Use a local graphical desktop, or play with: python hog_ui.py", file=sys.stderr)
         return 1
     path = default_preferences_path()
-    preferences = Preferences() if args.smoke_test else load_preferences(path)
+    preferences, settings_notice = (Preferences(), "") if args.smoke_test else load_preferences_with_notice(path)
     if args.theme:
         preferences = replace(preferences, theme=args.theme)
     if args.no_animation:
@@ -1669,6 +1706,9 @@ def main(argv=None):
         preferences = replace(preferences, sound=False)
     app = HogApp(root, preferences=preferences, preferences_path=None if args.smoke_test else path,
                  data_path=None if args.smoke_test else path.parent / "hog.sqlite3")
+    if settings_notice:
+        app.storage_error = " ".join(filter(None, (app.storage_error, settings_notice)))
+        app.show_home()
     errors = []
     if args.smoke_test:
         root.report_callback_exception = lambda kind, error, trace: errors.append(error)

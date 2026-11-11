@@ -1,60 +1,109 @@
-# Installation and Native Builds — v3.5.0
+# Installation and Native Builds — v4.0.0
 
-## Source / Windows, macOS, Linux
+## Python source: Windows, macOS and Linux
 
-Install Python 3.10+ with Tk support. Extract the project folder and run:
+Use Python 3.10+ with Tk support. Extract the ZIP, open a terminal in the project folder, and run:
 
 ```bash
 python hog_desktop.py
 ```
 
-Windows alternative: `py -3 hog_desktop.py`. Linux may use `python3`. Run `python -m tkinter` to check Tk. Source play uses no third-party Python packages. A terminal-only alternative is `python hog_ui.py`.
+Windows alternative: `py -3 hog_desktop.py`. Linux may use `python3`. In PyCharm, select a Tk-enabled interpreter and run `hog_desktop.py`. Check Tk with `python -m tkinter`. Source play needs no third-party Python packages. `python hog_ui.py` is the terminal alternative.
 
-## Included Linux Package
+The first normal launch opens a welcome tour until it is skipped/completed. Reopen it from Settings. Settings also provides Edit controls and Backup & recovery; Access provides larger text and reduced motion.
 
-Keep the full `native/linux-x86_64/Hog` folder together. Run `chmod +x native/linux-x86_64/Hog/Hog`, then `./native/linux-x86_64/Hog/Hog`. This build was verified on x86_64 Linux with glibc 2.39 and a virtual graphical display. Older glibc systems may need a local build or source play. It is not a Windows executable.
+## Included Linux native client
 
-## Build for Windows
+Keep the full `native/linux-x86_64/Hog` folder together:
 
-On Windows, install Python with Tcl/Tk support, then run `build-windows.bat`. This installs the pinned PyInstaller build dependency and creates `dist/Hog/Hog.exe` with its adjacent `_internal` folder. Keep the whole output folder together. The script is included for reproducibility; no native Windows build or Windows execution was performed here.
+```bash
+chmod +x native/linux-x86_64/Hog/Hog
+./native/linux-x86_64/Hog/Hog
+```
 
-## Build for the Current OS
+This build was verified on Linux x86-64 with glibc 2.39, Python 3.12.3, Tk 8.6 and PyInstaller 6.22.3. The client does not require a separate Python installation, but still needs a graphical desktop/system graphics libraries. Older glibc compatibility is not claimed; build locally or use source on other systems.
+
+### Per-user installation
+
+The installer requires Python 3 to copy/register the bundled client. It does not install pip packages or use administrator privileges:
+
+```bash
+python3 tools/install_linux.py
+```
+
+It installs the complete client under `~/.local/lib/hog`, a launcher at `~/.local/bin/hog`, and an application-menu entry at `~/.local/share/applications/hog.desktop`. Open Hog in your desktop menu or run the full launcher path. `hog` also works if `~/.local/bin` is on your PATH. Desktop menu refresh behavior depends on your desktop environment.
+
+For an isolated prefix, use `--prefix /path/to/prefix`. The installer refuses a foreign destination, keeps the native folder together and updates an installation marked as its own.
+
+Uninstall using the same project/installer:
+
+```bash
+python3 tools/install_linux.py --uninstall
+```
+
+Use the same `--prefix` when uninstalling a custom location. User game data and backups remain outside the installation folder and are preserved.
+
+## Build a native client on the current OS
 
 ```bash
 python -m pip install -r requirements-build.txt
 python tools/build_desktop.py
 ```
 
-PyInstaller requires a Python shared library. Some Linux distributions package it separately (`libpython3.12` for the tested system). Build on the intended target OS; this is not cross compilation. `build-native.sh` provides a convenience wrapper for a Unix environment with pip available.
+Output is `dist/Hog` on Windows/Linux and includes a `dist/Hog.app` bundle on macOS. Keep complete native output, including `_internal`. Native packages must be built on the target OS; PyInstaller is not a cross-compiler. Some Linux distributions package the Python shared library separately. `build-native.sh` is a convenience wrapper for Unix systems with pip.
 
-## Data Compatibility
+Build guidance follows the [PyInstaller manual](https://www.pyinstaller.org/en/stable/). Build requirements are optional and pinned; they are not needed for source play.
 
-The existing local `Hog/settings.json` and `Hog/hog.sqlite3` locations remain unchanged. Older preferences load with larger text disabled by default. v2.2.0/v3.0.0 profile records, standard match history, and saved matches remain supported. Close the application before backing up its database.
+## Windows installer recipe
 
-## Installation Checks
+On Windows with Python/Tk installed:
 
-`--version` needs no display. `--smoke-test` opens a desktop briefly and exits using temporary data. Full tests run with `python -m unittest discover -s tests -v`; GUI classes skip if a display is absent.
+1. Run `build-windows.bat`, or the build commands above.
+2. Install Inno Setup on that build machine.
+3. Compile the recipe:
 
-## Window Layout
+```powershell
+ISCC.exe installers\windows\Hog.iss
+```
 
-The standard-text minimum is 960 × 720. Below 1180 pixels wide, dashboard navigation becomes horizontal and the match journal initially hides. Use Show journal to reopen it. The dashboard has a scrollbar for lower cards. Larger text can need a bigger window.
+If ISCC is not on PATH, use its installed full path. The recipe expects `dist/Hog` and writes `dist-installers/Hog-v4.0.0-windows-setup.exe`. It installs for the current user, offers a desktop shortcut and registers an uninstaller. It does not include rules that remove AppData progress. The recipe is unsigned. See the [official Inno Setup compiler reference](https://jrsoftware.org/ishelp/topic_compilercmdline.htm).
 
-## Statistics and Replays
+**No Windows executable or installer was built/run in this Linux environment.** Test on Windows before attaching one to a release.
 
-Open Stats in dashboard navigation, or Statistics in Player hub. The default profile is the one with the most completed matches. Open Replay to inspect the latest 100 completed desktop records. Both windows require at least 900 × 720 and read standard records from the current database. Close and reopen Statistics to refresh its snapshot.
+## macOS disk-image recipe
 
-## Coaching and Challenges
+On macOS, build the native app, then run:
 
-Use Coach in dashboard navigation. During a standard human turn, Coach / H opens live explanations. Review on the result screen and Review decisions inside Replay open pre-roll analysis. Puzzle progress is held only for the current app session; it is separate from the database and manual saves. Compact dashboard navigation now uses two rows.
+```bash
+python tools/build_macos_dmg.py
+```
 
-## Campaign and Cosmetics
+The builder uses `ditto` to preserve bundle symlinks and `hdiutil` to make `dist-installers/Hog-v4.0.0-macos.dmg`, containing Hog.app and an Applications shortcut. This follows [Apple's disk-image packaging guidance](https://developer.apple.com/documentation/xcode/packaging-mac-software-for-distribution). The result is a drag-to-Applications package, not a signed/notarized distribution. Signing/notarization are not configured and require your own Apple release process.
 
-Use Campaign in dashboard navigation, then select or create a local profile. Completed stages and equipped dice/avatar items persist. Wardrobe theme choices apply globally and persist in appearance preferences. In-progress campaign matches are not resumable; the standard manual save slot is independent.
+**No macOS bundle or disk image was built/run here.** Test on the target macOS version/architecture before publishing it.
 
-## Schema-1 Upgrade
+## Manual GitHub build workflow
 
-On the first normal launch with a schema-1 database, the app creates `hog.sqlite3.v1-backup` beside it unless that backup exists, then migrates in a transaction to schema 2. Existing profiles, standard history, tournaments and manual saves remain intact. If backup installation fails, migration stops and the temporary-storage notice is shown. Earlier releases cannot open schema 2. Keep the pre-upgrade backup if you intend to downgrade; close all Hog windows before copying or restoring a database.
+`.github/workflows/native-builds.yml` provides manual Linux/Windows/macOS jobs with tests, network checks, builds and native smoke launches. It creates review artifacts; it does not publish releases. It was supplied as source and has not run in your GitHub account. Check all job logs and test output/installers on target systems. See [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
-## Private Multiplayer
+## Data and compatibility
 
-Run `python hog_server.py` in a separate terminal, then open Online in the desktop. The default client address is `http://127.0.0.1:8765`. Two desktop clients can test one machine. LAN/internet players need a mutually reachable relay; use the setup and HTTPS instructions in [ONLINE.md](ONLINE.md). The Linux native build is a client; the relay runs from Python source. `python tools/network_smoke.py` verifies two local clients without a display.
+Settings/database paths remain per-user. Schema 1 and 2 databases receive a matching pre-upgrade backup before migration to schema 3; existing backup files are not overwritten. Manual saved-match JSON remains schema 1. Older settings load with default action keys and welcome status. Earlier releases reject schema 3; use the matching old database backup when downgrading.
+
+Use Settings > Backup & recovery for portable export/import. Restore validates in isolation and creates a current-data safety export before replacing data. It does not merge. See [RECOVERY.md](RECOVERY.md) for data locations and undo steps.
+
+## Checks and display
+
+`--version` needs no display. `--smoke-test` briefly opens a desktop using temporary data. Run the suite with:
+
+```bash
+python -m unittest discover -s tests -v
+python -m doctest hog.py dice.py
+python tools/network_smoke.py
+```
+
+GUI classes skip when no display is available. The standard-text main window minimum is 960 × 720. Below 1180 wide, dashboard navigation uses two rows and the match journal initially hides. Larger text can need a larger window.
+
+## Private multiplayer
+
+Run `python hog_server.py` in a separate process, then open Online in the desktop. Default local endpoint: `http://127.0.0.1:8765`. Both players need the same reachable relay and room code. The native package is a client; no public server is deployed. See [ONLINE.md](ONLINE.md) for LAN/HTTPS and reconnect details.

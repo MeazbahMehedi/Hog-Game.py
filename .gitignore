@@ -12,3 +12,8 @@ Thumbs.db
 build/
 dist/
 *.spec
+
+*.hogbackup
+last-error.log
+dist-installers/
+*.sqlite3.*
