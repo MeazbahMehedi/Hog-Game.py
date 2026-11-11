@@ -17,3 +17,10 @@ dist/
 last-error.log
 dist-installers/
 *.sqlite3.*
+# PyCharm
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
